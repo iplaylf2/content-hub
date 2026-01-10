@@ -69,6 +69,16 @@ def _validate_targets(
             parser.error("Workspace target cannot be empty.")
 
 
+@dataclass(frozen=True)
+class CliContext:
+    """Resolved CLI inputs and environment context."""
+
+    command: str
+    config_path: Path
+    all_workspaces: bool
+    targets: list[str]
+
+
 def _add_target_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "-a",
@@ -81,13 +91,3 @@ def _add_target_args(parser: argparse.ArgumentParser) -> None:
         nargs="*",
         help="Workspace or workspace/path to target.",
     )
-
-
-@dataclass(frozen=True)
-class CliContext:
-    """Resolved CLI inputs and environment context."""
-
-    command: str
-    config_path: Path
-    all_workspaces: bool
-    targets: list[str]
