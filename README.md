@@ -56,6 +56,8 @@ Where:
 - `--path` limits the operation to a path within each targeted workspace
 - `--all-workspaces` explicitly targets all workspaces defined in the config (deploy only)
 
+`--path` assumes the origin directory and each workspace directory share a compatible structure (e.g., `--path api` maps `origin/api` to `<workspace>/api`).
+
 ### Examples
 
 ```bash
