@@ -46,44 +46,42 @@ The CLI does not infer or discover them from the filesystem.
 All primary commands follow the same structure:
 
 ```bash
-contentctl <command> <target>... | --all
+contentctl deploy <workspace>... [--path <path>] | --all-workspaces [--path <path>]
+contentctl adopt <workspace> [--path <path>]
 ```
 
 Where:
 
-- `<command>` is one of: `deploy`, `adopt`
-- `<target>` is a workspace alias or `workspace/path`
-- `--all` explicitly targets all workspaces defined in the config
-
-A command without explicit targets or `--all` is considered invalid.
+- `<workspace>` is a workspace alias defined in the config (no path suffix)
+- `--path` limits the operation to a path within each targeted workspace
+- `--all-workspaces` explicitly targets all workspaces defined in the config (deploy only)
 
 ### Examples
 
 ```bash
 # show help
-contentctl
-contentctl -h
 contentctl --help
 
 # deploy an entire workspace
 contentctl deploy docs
 
-# deploy a subdirectory or file within a workspace
-contentctl deploy docs/api
+# deploy multiple workspaces
+contentctl deploy docs assets
 
-# deploy multiple targets across workspaces
-contentctl deploy docs assets/images
+# deploy a path within a workspace
+contentctl deploy docs --path api
+
+# deploy a path across all workspaces
+contentctl deploy --all-workspaces --path api
 
 # adopt content back from a workspace
 contentctl adopt docs
 
-# operate on all registered workspaces
-contentctl deploy --all
-contentctl adopt --all
+# adopt a path within a workspace
+contentctl adopt docs --path api
 
 # use an explicit config file
 contentctl deploy docs -c content-hub.yaml
-contentctl adopt --all --config content-hub.yaml
 ```
 
 In all cases, the selected config defines the available workspaces, their path anchors,

@@ -18,13 +18,14 @@ def main() -> None:
         print(str(exc), file=sys.stderr)
         sys.exit(2)
 
-    if ctx.command == "deploy":
-        raise NotImplementedError("deploy is not implemented yet")
-    if ctx.command == "adopt":
-        raise NotImplementedError("adopt is not implemented yet")
-
-    print(f"Unknown command: {ctx.command}", file=sys.stderr)
-    sys.exit(2)
+    match ctx.command:
+        case "deploy":
+            raise NotImplementedError("deploy is not implemented yet")
+        case "adopt":
+            raise NotImplementedError("adopt is not implemented yet")
+        case _:
+            print(f"Unknown command: {ctx.command}", file=sys.stderr)
+            sys.exit(2)
 
 
 if __name__ == "__main__":

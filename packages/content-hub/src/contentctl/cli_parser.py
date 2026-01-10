@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable, Literal
 
 
 def parse_cli(argv: list[str], cwd: Path) -> CliContext:
@@ -13,15 +14,56 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
 
     config_path = _resolve_config_path(args.config, cwd)
 
-    targets = list(args.target or [])
-    _validate_targets(targets, args.all, parser)
+    if args.path is not None and not args.path.strip():
+        parser.error("Path cannot be empty.")
 
-    return CliContext(
-        command=args.command,
-        config_path=config_path,
-        all_workspaces=args.all,
-        targets=targets,
-    )
+    match args.command:
+        case "deploy":
+            workspaces = list(args.workspace or [])
+            all_workspaces = bool(args.all_workspaces)
+            _validate_deploy_targets(workspaces, all_workspaces, parser)
+            return DeployContext(
+                command="deploy",
+                config_path=config_path,
+                all_workspaces=all_workspaces,
+                workspaces=workspaces,
+                path=args.path,
+            )
+        case "adopt":
+            workspace = args.workspace
+            _validate_adopt_target(workspace, parser)
+            return AdoptContext(
+                command="adopt",
+                config_path=config_path,
+                workspace=workspace,
+                path=args.path,
+            )
+        case _:
+            parser.error(f"Unknown command: {args.command}")
+
+
+@dataclass(frozen=True)
+class DeployContext:
+    """Resolved CLI inputs for deploy."""
+
+    command: Literal["deploy"]
+    config_path: Path
+    all_workspaces: bool
+    workspaces: list[str]
+    path: str | None
+
+
+@dataclass(frozen=True)
+class AdoptContext:
+    """Resolved CLI inputs for adopt."""
+
+    command: Literal["adopt"]
+    config_path: Path
+    workspace: str
+    path: str | None
+
+
+CliContext = DeployContext | AdoptContext
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -37,16 +79,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Path to the config file. Defaults to content-hub.yaml in the current directory.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
-    deploy_parser = subparsers.add_parser(
-        "deploy",
-        help="Copy content from source to target.",
-    )
-    adopt_parser = subparsers.add_parser(
-        "adopt",
-        help="Copy content from target to source.",
-    )
-    _add_target_args(deploy_parser)
-    _add_target_args(adopt_parser)
+    _add_deploy_parser(subparsers.add_parser)
+    _add_adopt_parser(subparsers.add_parser)
     return parser
 
 
@@ -57,37 +91,64 @@ def _resolve_config_path(config_arg: str, cwd: Path) -> Path:
     return config_path.resolve()
 
 
-def _validate_targets(
-    targets: list[str], all_workspaces: bool, parser: argparse.ArgumentParser
+def _validate_deploy_targets(
+    workspaces: list[str], all_workspaces: bool, parser: argparse.ArgumentParser
 ) -> None:
-    if all_workspaces and targets:
-        parser.error("Use either workspace targets or --all, not both.")
-    if not all_workspaces and not targets:
-        parser.error("One or more workspace targets or --all is required.")
-    for target in targets:
-        if not target.strip():
-            parser.error("Workspace target cannot be empty.")
+    if all_workspaces and workspaces:
+        parser.error("Use either workspace targets or --all-workspaces, not both.")
+    if not all_workspaces and not workspaces:
+        parser.error("One or more workspaces or --all-workspaces is required.")
+    for workspace in workspaces:
+        if not workspace.strip():
+            parser.error("Workspace cannot be empty.")
 
 
-@dataclass(frozen=True)
-class CliContext:
-    """Resolved CLI inputs and environment context."""
-
-    command: str
-    config_path: Path
-    all_workspaces: bool
-    targets: list[str]
+def _validate_adopt_target(workspace: str, parser: argparse.ArgumentParser) -> None:
+    if not workspace.strip():
+        parser.error("Workspace cannot be empty.")
 
 
-def _add_target_args(parser: argparse.ArgumentParser) -> None:
+def _add_deploy_parser(
+    add_parser: Callable[..., argparse.ArgumentParser],
+) -> None:
+    parser = add_parser(
+        "deploy",
+        help="Copy content from origin to target.",
+    )
     parser.add_argument(
-        "-a",
-        "--all",
+        "--all-workspaces",
         action="store_true",
         help="Target all workspaces defined in the config.",
     )
+    _add_workspace_arg(parser, nargs="*")
+    _add_path_arg(parser)
+
+
+def _add_adopt_parser(
+    add_parser: Callable[..., argparse.ArgumentParser],
+) -> None:
+    parser = add_parser(
+        "adopt",
+        help="Copy content from target to origin.",
+    )
+    _add_workspace_arg(parser)
+    _add_path_arg(parser)
+
+
+def _add_workspace_arg(
+    parser: argparse.ArgumentParser,
+    nargs: str | None = None,
+) -> None:
     parser.add_argument(
-        "target",
-        nargs="*",
-        help="Workspace or workspace/path to target.",
+        "workspace",
+        nargs=nargs,
+        help="Workspace alias defined in the config.",
+    )
+
+
+def _add_path_arg(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "-p",
+        "--path",
+        help="Optional path within the workspace to target.",
     )
