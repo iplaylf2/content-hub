@@ -14,7 +14,7 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
 
     config_path = _resolve_config_path(args.config, cwd)
 
-    if args.path is not None and not args.path.strip():
+    if not args.path.strip():
         parser.error("Path cannot be empty.")
 
     match args.command:
@@ -50,7 +50,7 @@ class DeployContext:
     config_path: Path
     all_workspaces: bool
     workspaces: list[str]
-    path: str | None
+    path: str
 
 
 @dataclass(frozen=True)
@@ -60,7 +60,7 @@ class AdoptContext:
     command: Literal["adopt"]
     config_path: Path
     workspace: str
-    path: str | None
+    path: str
 
 
 CliContext = DeployContext | AdoptContext
@@ -150,5 +150,6 @@ def _add_path_arg(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "-p",
         "--path",
-        help="Optional path within the workspace to target.",
+        default=".",
+        help="Relative path applied to both origin and workspace (default: '.').",
     )

@@ -43,27 +43,20 @@ The CLI does not infer or discover them from the filesystem.
 
 ### Command form
 
-All primary commands follow the same structure:
-
 ```bash
-contentctl deploy <workspace>... [--path <path>] | --all-workspaces [--path <path>]
-contentctl adopt <workspace> [--path <path>]
+contentctl [--config <path>] deploy <workspace>... [--path <path>]
+contentctl [--config <path>] deploy --all-workspaces [--path <path>]
+contentctl [--config <path>] adopt <workspace> [--path <path>]
 ```
 
-Where:
-
-- `<workspace>` is a workspace alias defined in the config (no path suffix)
-- `--path` limits the operation to a path within each targeted workspace
-- `--all-workspaces` explicitly targets all workspaces defined in the config (deploy only)
-
-`--path` assumes the origin directory and each workspace directory share a compatible structure (e.g., `--path api` maps `origin/api` to `<workspace>/api`).
+`--config` is optional and defaults to `content-hub.yaml` in the current directory.
+`<workspace>` is a workspace alias defined in the config (no path suffix).
+`--path` is optional and defaults to `.` within each targeted workspace; it assumes the origin directory and each workspace directory share a compatible structure (e.g., `--path api` maps `origin/api` to `<workspace>/api`).
+`--all-workspaces` is deploy-only.
 
 ### Examples
 
 ```bash
-# show help
-contentctl --help
-
 # deploy an entire workspace
 contentctl deploy docs
 
