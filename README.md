@@ -46,17 +46,16 @@ The CLI does not infer or discover them from the filesystem.
 All primary commands follow the same structure:
 
 ```bash
-contentctl <command> <workspace>[/<path>] | --all
+contentctl <command> <target>... | --all
 ```
 
 Where:
 
 - `<command>` is one of: `deploy`, `adopt`
-- `<workspace>` is a workspace alias defined in the config
-- `<path>` is an optional path relative to the workspace root
+- `<target>` is a workspace alias or `workspace/path`
 - `--all` explicitly targets all workspaces defined in the config
 
-A command without an explicit workspace or `--all` is considered invalid.
+A command without explicit targets or `--all` is considered invalid.
 
 ### Examples
 
@@ -71,6 +70,9 @@ contentctl deploy docs
 
 # deploy a subdirectory or file within a workspace
 contentctl deploy docs/api
+
+# deploy multiple targets across workspaces
+contentctl deploy docs assets/images
 
 # adopt content back from a workspace
 contentctl adopt docs
