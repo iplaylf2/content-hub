@@ -2,31 +2,21 @@
 
 from __future__ import annotations
 
-import argparse
 import sys
+from pathlib import Path
 
-
-def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        prog="contentctl",
-        description="Manage directory content across multiple locations.",
-    )
-    subparsers = parser.add_subparsers(dest="command", required=True)
-    subparsers.add_parser("deploy", help="Copy content from source to target.")
-    subparsers.add_parser("adopt", help="Copy content from target to source.")
-
-    return parser.parse_args(argv)
+from contentctl.cli_parser import parse_cli
 
 
 def main() -> None:
-    args = parse_args(sys.argv[1:])
+    ctx = parse_cli(sys.argv[1:], Path.cwd())
 
-    if args.command == "deploy":
+    if ctx.command == "deploy":
         raise NotImplementedError("deploy is not implemented yet")
-    if args.command == "adopt":
+    if ctx.command == "adopt":
         raise NotImplementedError("adopt is not implemented yet")
 
-    print(f"Unknown command: {args.command}", file=sys.stderr)
+    print(f"Unknown command: {ctx.command}", file=sys.stderr)
     sys.exit(2)
 
 
