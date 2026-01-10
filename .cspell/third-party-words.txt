@@ -1,0 +1,6 @@
+coderabbitai
+docstrings
+pyyaml
+setuptools
+shellcheck
+venv
