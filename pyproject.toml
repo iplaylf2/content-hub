@@ -1,2 +1,5 @@
 [tool.uv.workspace]
 members = ["packages/content-hub"]
+
+[dependency-groups]
+dev = ["basedpyright>=1.37.1"]

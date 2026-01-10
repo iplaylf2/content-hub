@@ -1,5 +1,7 @@
+basedpyright
 coderabbitai
 docstrings
+jsonschema
 pyyaml
 setuptools
 shellcheck
