@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from contentctl.config.loader import ConfigError
-from contentctl.config.resolver import ResolvedConfig, Workspace
+from .loader import ConfigError
+from .resolver import ResolvedConfig, Workspace
 
 
 def select_all_workspaces(resolved: ResolvedConfig) -> list[Workspace]:

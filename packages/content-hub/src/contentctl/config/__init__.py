@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from contentctl.config.loader import ConfigError, load_config
-from contentctl.config.resolver import ResolvedConfig, Workspace, resolve_config
-from contentctl.config.selectors import select_all_workspaces, select_workspaces
+from .loader import ConfigError, load_config
+from .resolver import ResolvedConfig, Workspace, resolve_config
+from .selectors import select_all_workspaces, select_workspaces
 
 __all__ = [
     "ConfigError",
