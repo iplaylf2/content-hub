@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from contentctl.cli_parser import parse_cli
+from contentctl.cli_parser import AdoptContext, DeployContext, parse_cli
 from contentctl.config_loader import ConfigError, load_config
 
 
@@ -18,14 +18,11 @@ def main() -> None:
         print(str(exc), file=sys.stderr)
         sys.exit(2)
 
-    match ctx.command:
-        case "deploy":
+    match ctx:
+        case DeployContext():
             raise NotImplementedError("deploy is not implemented yet")
-        case "adopt":
+        case AdoptContext():
             raise NotImplementedError("adopt is not implemented yet")
-        case _:
-            print(f"Unknown command: {ctx.command}", file=sys.stderr)
-            sys.exit(2)
 
 
 if __name__ == "__main__":

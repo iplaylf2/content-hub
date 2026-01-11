@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from collections import UserDict
 from collections.abc import Iterable
 from functools import lru_cache
 from importlib.resources import files
 import json
+import os
 from pathlib import Path
+from string import Template
 from typing import Any, Protocol, cast
 
 import yaml
@@ -29,11 +32,15 @@ def load_config(config_path: Path) -> dict[str, Any]:
     except yaml.YAMLError as exc:
         raise ConfigError(f"Invalid YAML in config file: {config_path}") from exc
 
-    if config is None:
-        raise ConfigError(f"Config file is empty: {config_path}")
-    if not isinstance(config, dict):
-        raise ConfigError("Config root must be a mapping/object.")
+    match config:
+        case None:
+            raise ConfigError(f"Config file is empty: {config_path}")
+        case dict():
+            pass
+        case _:
+            raise ConfigError("Config root must be a mapping/object.")
 
+    config = _render_env_vars(config)
     config_dict = cast(dict[str, Any], config)
     _validate_schema(config_dict)
     return config_dict
@@ -41,10 +48,6 @@ def load_config(config_path: Path) -> dict[str, Any]:
 
 class ConfigError(ValueError):
     """Raised when the config file cannot be loaded or validated."""
-
-
-class _Validator(Protocol):
-    def iter_errors(self, instance: Any) -> Iterable[ValidationError]: ...
 
 
 def _validate_schema(config: dict[str, Any]) -> None:
@@ -61,18 +64,45 @@ def _validate_schema(config: dict[str, Any]) -> None:
     raise ConfigError(f"Config schema validation failed:\n{details}")
 
 
+class _Validator(Protocol):
+    def iter_errors(self, instance: Any) -> Iterable[ValidationError]: ...
+
+
 def _format_error_path(error: ValidationError) -> str:
     if not error.path:
         return "<root>"
     segments: list[str] = []
     for segment in error.path:
-        if isinstance(segment, int):
-            segments.append(f"[{segment}]")
-        else:
-            if segments:
-                segments.append(".")
-            segments.append(str(segment))
+        match segment:
+            case int():
+                segments.append(f"[{segment}]")
+            case _:
+                if segments:
+                    segments.append(".")
+                segments.append(str(segment))
     return "".join(segments)
+
+
+def _render_env_vars(value: Any) -> Any:
+    match value:
+        case str():
+            return Template(value).substitute(_EnvVars(os.environ))
+        case list():
+            value_list = cast(list[Any], value)
+            return [_render_env_vars(item) for item in value_list]
+        case dict():
+            rendered: dict[str, Any] = {}
+            value_dict = cast(dict[str, Any], value)
+            for key, item in value_dict.items():
+                rendered[key] = _render_env_vars(item)
+            return rendered
+        case _:
+            return value
+
+
+class _EnvVars(UserDict[str, str]):
+    def __missing__(self, key: str) -> str:
+        return ""
 
 
 @lru_cache
