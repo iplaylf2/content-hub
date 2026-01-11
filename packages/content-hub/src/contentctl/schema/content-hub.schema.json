@@ -17,9 +17,17 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "ignore": {
+        "include": {
           "type": "array",
-          "description": "Glob patterns to ignore.",
+          "description": "Glob patterns to include.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "exclude": {
+          "type": "array",
+          "description": "Glob patterns to exclude.",
           "items": {
             "type": "string",
             "minLength": 1
@@ -49,9 +57,17 @@
                 "minLength": 1,
                 "description": "Filesystem path."
               },
-              "ignore": {
+              "include": {
                 "type": "array",
-                "description": "Glob patterns to ignore.",
+                "description": "Glob patterns to include.",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "exclude": {
+                "type": "array",
+                "description": "Glob patterns to exclude.",
                 "items": {
                   "type": "string",
                   "minLength": 1
