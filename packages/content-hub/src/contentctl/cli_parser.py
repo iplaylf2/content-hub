@@ -28,6 +28,8 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
                 all_workspaces=all_workspaces,
                 workspaces=workspaces,
                 path=args.path,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
             )
         case "adopt":
             workspace = args.workspace
@@ -37,28 +39,37 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
                 config_path=config_path,
                 workspace=workspace,
                 path=args.path,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
             )
         case _:
             parser.error(f"Unknown command: {args.command}")
 
 
 @dataclass(frozen=True)
-class DeployContext:
+class BaseContext:
+    """Resolved CLI inputs shared across commands."""
+
+    config_path: Path
+    dry_run: bool
+    verbose: bool
+
+
+@dataclass(frozen=True)
+class DeployContext(BaseContext):
     """Resolved CLI inputs for deploy."""
 
     command: Literal["deploy"]
-    config_path: Path
     all_workspaces: bool
     workspaces: list[str]
     path: str
 
 
 @dataclass(frozen=True)
-class AdoptContext:
+class AdoptContext(BaseContext):
     """Resolved CLI inputs for adopt."""
 
     command: Literal["adopt"]
-    config_path: Path
     workspace: str
     path: str
 
@@ -77,6 +88,17 @@ def _build_parser() -> argparse.ArgumentParser:
         dest="config",
         default="content-hub.yaml",
         help="Path to the config file. Defaults to content-hub.yaml in the current directory.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print planned operations without writing changes.",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Print detailed operation output.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
     _add_deploy_parser(subparsers.add_parser)
