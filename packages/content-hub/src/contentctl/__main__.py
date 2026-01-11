@@ -5,8 +5,16 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from contentctl.cli_parser import AdoptContext, DeployContext, parse_cli
-from contentctl.config import ConfigError, load_config, resolve_config
+from .cli_parser import AdoptContext, DeployContext, parse_cli
+from .config import (
+    ConfigError,
+    ResolvedConfig,
+    load_config,
+    resolve_config,
+    select_all_workspaces,
+    select_workspaces,
+)
+from .operations import SyncError, run_adopt, run_deploy
 
 
 def main() -> None:
@@ -14,16 +22,43 @@ def main() -> None:
 
     try:
         raw_config = load_config(ctx.config_path)
-        resolve_config(raw_config, ctx.config_path)
+        resolved = resolve_config(raw_config, ctx.config_path)
     except ConfigError as exc:
         print(str(exc), file=sys.stderr)
         sys.exit(2)
 
+    try:
+        _dispatch(ctx, resolved)
+    except (ConfigError, SyncError) as exc:
+        print(str(exc), file=sys.stderr)
+        sys.exit(1)
+
+
+def _dispatch(ctx: AdoptContext | DeployContext, resolved: ResolvedConfig) -> None:
     match ctx:
         case DeployContext():
-            raise NotImplementedError("deploy is not implemented yet")
+            if ctx.all_workspaces:
+                workspaces = select_all_workspaces(resolved)
+            else:
+                workspaces = select_workspaces(resolved, ctx.workspaces)
+            run_deploy(
+                workspaces=workspaces,
+                origin=resolved.origin,
+                path=ctx.path,
+                dry_run=ctx.dry_run,
+                verbose=ctx.verbose,
+                output=sys.stdout,
+            )
         case AdoptContext():
-            raise NotImplementedError("adopt is not implemented yet")
+            workspaces = select_workspaces(resolved, [ctx.workspace])
+            run_adopt(
+                workspace=workspaces[0],
+                origin=resolved.origin,
+                path=ctx.path,
+                dry_run=ctx.dry_run,
+                verbose=ctx.verbose,
+                output=sys.stdout,
+            )
 
 
 if __name__ == "__main__":
