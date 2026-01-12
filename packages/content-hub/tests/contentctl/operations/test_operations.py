@@ -2,10 +2,14 @@ from __future__ import annotations
 
 from io import StringIO
 from pathlib import Path
+from typing import TextIO
+from unittest.mock import create_autospec
 
 import pytest
 
 from contentctl.config import Workspace
+from contentctl.operations import adopt as adopt_mod
+from contentctl.operations import deploy as deploy_mod
 from contentctl.operations.adopt import run_adopt
 from contentctl.operations.deploy import run_deploy
 from contentctl.plan.sync import SyncAction, SyncOperation, SyncPlan
@@ -17,22 +21,21 @@ def test_run_deploy_dry_run_prints_plan(
     plan = _fake_plan()
     printed: list[SyncPlan] = []
 
-    def fake_plan_sync(**_kwargs: object) -> SyncPlan:
-        return plan
-
-    def fake_print_sync_plan(plan_arg: SyncPlan, _output: StringIO) -> None:
+    def record_print(plan_arg: SyncPlan, _output: TextIO) -> None:
         printed.append(plan_arg)
 
-    def fail_apply_sync_plan(_plan: SyncPlan) -> None:
-        raise AssertionError("apply should not run")
-
-    monkeypatch.setattr("contentctl.operations.deploy.plan_sync", fake_plan_sync)
-    monkeypatch.setattr(
-        "contentctl.operations.deploy.print_sync_plan", fake_print_sync_plan
+    plan_sync_mock = create_autospec(deploy_mod.plan_sync, return_value=plan)
+    print_sync_plan_mock = create_autospec(
+        deploy_mod.print_sync_plan,
+        side_effect=record_print,
     )
-    monkeypatch.setattr(
-        "contentctl.operations.deploy.apply_sync_plan", fail_apply_sync_plan
+    apply_sync_plan_mock = create_autospec(
+        deploy_mod.apply_sync_plan,
+        side_effect=AssertionError("apply should not run"),
     )
+    monkeypatch.setattr(deploy_mod, "plan_sync", plan_sync_mock)
+    monkeypatch.setattr(deploy_mod, "print_sync_plan", print_sync_plan_mock)
+    monkeypatch.setattr(deploy_mod, "apply_sync_plan", apply_sync_plan_mock)
 
     output = StringIO()
     run_deploy(
@@ -57,22 +60,24 @@ def test_run_adopt_applies_plan(
     applied: list[SyncPlan] = []
     printed: list[SyncPlan] = []
 
-    def fake_plan_sync(**_kwargs: object) -> SyncPlan:
-        return plan
-
-    def fake_apply_sync_plan(plan_arg: SyncPlan) -> None:
+    def record_apply(plan_arg: SyncPlan) -> None:
         applied.append(plan_arg)
 
-    def fake_print_sync_plan(plan_arg: SyncPlan, _output: StringIO) -> None:
+    def record_print(plan_arg: SyncPlan, _output: TextIO) -> None:
         printed.append(plan_arg)
 
-    monkeypatch.setattr("contentctl.operations.adopt.plan_sync", fake_plan_sync)
-    monkeypatch.setattr(
-        "contentctl.operations.adopt.apply_sync_plan", fake_apply_sync_plan
+    plan_sync_mock = create_autospec(adopt_mod.plan_sync, return_value=plan)
+    apply_sync_plan_mock = create_autospec(
+        adopt_mod.apply_sync_plan,
+        side_effect=record_apply,
     )
-    monkeypatch.setattr(
-        "contentctl.operations.adopt.print_sync_plan", fake_print_sync_plan
+    print_sync_plan_mock = create_autospec(
+        adopt_mod.print_sync_plan,
+        side_effect=record_print,
     )
+    monkeypatch.setattr(adopt_mod, "plan_sync", plan_sync_mock)
+    monkeypatch.setattr(adopt_mod, "apply_sync_plan", apply_sync_plan_mock)
+    monkeypatch.setattr(adopt_mod, "print_sync_plan", print_sync_plan_mock)
 
     output = StringIO()
     run_adopt(
@@ -89,6 +94,134 @@ def test_run_adopt_applies_plan(
     assert f"{len(plan.operations)} files copied" in text
     assert applied == [plan]
     assert printed == []
+
+
+def test_run_adopt_dry_run_prints_plan(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    plan = _fake_plan()
+    printed: list[SyncPlan] = []
+
+    def record_print(plan_arg: SyncPlan, _output: TextIO) -> None:
+        printed.append(plan_arg)
+
+    plan_sync_mock = create_autospec(adopt_mod.plan_sync, return_value=plan)
+    print_sync_plan_mock = create_autospec(
+        adopt_mod.print_sync_plan,
+        side_effect=record_print,
+    )
+    apply_sync_plan_mock = create_autospec(
+        adopt_mod.apply_sync_plan,
+        side_effect=AssertionError("apply should not run"),
+    )
+    monkeypatch.setattr(adopt_mod, "plan_sync", plan_sync_mock)
+    monkeypatch.setattr(adopt_mod, "print_sync_plan", print_sync_plan_mock)
+    monkeypatch.setattr(adopt_mod, "apply_sync_plan", apply_sync_plan_mock)
+
+    output = StringIO()
+    run_adopt(
+        workspace=Workspace(name="docs", path=Path("/ws"), include=(), exclude=()),
+        origin=Workspace(name="", path=Path("/origin"), include=(), exclude=()),
+        path=".",
+        dry_run=True,
+        verbose=False,
+        output=output,
+    )
+
+    text = output.getvalue()
+    assert "adopt docs:" in text
+    assert f"{len(plan.operations)} files planned" in text
+    assert printed == [plan]
+
+
+def test_run_adopt_verbose_prints_plan(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    plan = _fake_plan()
+    applied: list[SyncPlan] = []
+    printed: list[SyncPlan] = []
+
+    def record_apply(plan_arg: SyncPlan) -> None:
+        applied.append(plan_arg)
+
+    def record_print(plan_arg: SyncPlan, _output: TextIO) -> None:
+        printed.append(plan_arg)
+
+    plan_sync_mock = create_autospec(adopt_mod.plan_sync, return_value=plan)
+    apply_sync_plan_mock = create_autospec(
+        adopt_mod.apply_sync_plan,
+        side_effect=record_apply,
+    )
+    print_sync_plan_mock = create_autospec(
+        adopt_mod.print_sync_plan,
+        side_effect=record_print,
+    )
+    monkeypatch.setattr(adopt_mod, "plan_sync", plan_sync_mock)
+    monkeypatch.setattr(adopt_mod, "apply_sync_plan", apply_sync_plan_mock)
+    monkeypatch.setattr(adopt_mod, "print_sync_plan", print_sync_plan_mock)
+
+    output = StringIO()
+    run_adopt(
+        workspace=Workspace(name="docs", path=Path("/ws"), include=(), exclude=()),
+        origin=Workspace(name="", path=Path("/origin"), include=(), exclude=()),
+        path=".",
+        dry_run=False,
+        verbose=True,
+        output=output,
+    )
+
+    text = output.getvalue()
+    assert "adopt docs:" in text
+    assert f"{len(plan.operations)} files copied" in text
+    assert applied == [plan]
+    assert printed == [plan]
+
+
+def test_run_deploy_verbose_prints_plan(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    plan = _fake_plan()
+    applied: list[SyncPlan] = []
+    printed: list[SyncPlan] = []
+
+    def record_apply(plan_arg: SyncPlan) -> None:
+        applied.append(plan_arg)
+
+    def record_print(plan_arg: SyncPlan, _output: TextIO) -> None:
+        printed.append(plan_arg)
+
+    plan_sync_mock = create_autospec(deploy_mod.plan_sync, return_value=plan)
+    apply_sync_plan_mock = create_autospec(
+        deploy_mod.apply_sync_plan,
+        side_effect=record_apply,
+    )
+    print_sync_plan_mock = create_autospec(
+        deploy_mod.print_sync_plan,
+        side_effect=record_print,
+    )
+    monkeypatch.setattr(deploy_mod, "plan_sync", plan_sync_mock)
+    monkeypatch.setattr(deploy_mod, "apply_sync_plan", apply_sync_plan_mock)
+    monkeypatch.setattr(deploy_mod, "print_sync_plan", print_sync_plan_mock)
+
+    output = StringIO()
+    run_deploy(
+        workspaces=[
+            Workspace(name="docs", path=Path("/ws"), include=(), exclude=()),
+            Workspace(name="assets", path=Path("/assets"), include=(), exclude=()),
+        ],
+        origin=Workspace(name="", path=Path("/origin"), include=(), exclude=()),
+        path=".",
+        dry_run=False,
+        verbose=True,
+        output=output,
+    )
+
+    text = output.getvalue()
+    assert "deploy docs:" in text
+    assert "deploy assets:" in text
+    assert f"{len(plan.operations)} files copied" in text
+    assert applied == [plan, plan]
+    assert printed == [plan, plan]
 
 
 def _fake_plan() -> SyncPlan:

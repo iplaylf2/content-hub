@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import TypedDict, cast
+from unittest.mock import create_autospec
 
 import pytest
 
@@ -54,18 +55,7 @@ def test_main_exits_on_sync_error(
 ) -> None:
     ctx = _deploy_ctx()
 
-    def fake_parse_cli(_argv: list[str], _cwd: Path) -> DeployContext:
-        return ctx
-
-    def fake_load_config(_path: Path) -> dict[str, object]:
-        return {}
-
-    def fake_resolve_config(_cfg: dict[str, object], _path: Path) -> ResolvedConfig:
-        return _resolved_config()
-
-    monkeypatch.setattr(mainmod, "parse_cli", fake_parse_cli)
-    monkeypatch.setattr(mainmod, "load_config", fake_load_config)
-    monkeypatch.setattr(mainmod, "resolve_config", fake_resolve_config)
+    _patch_main_context(monkeypatch, ctx=ctx, resolved=_resolved_config())
 
     def raise_sync_error(_ctx: object, _resolved: object) -> None:
         raise mainmod.SyncError("sync failed")
@@ -79,19 +69,30 @@ def test_main_exits_on_sync_error(
     assert "sync failed" in capsys.readouterr().err
 
 
+def test_main_exits_on_dispatch_config_error(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    ctx = _deploy_ctx(all_workspaces=False, workspaces=["missing"])
+
+    def fake_select_workspaces(
+        _resolved: ResolvedConfig, _workspaces: list[str]
+    ) -> list[Workspace]:
+        raise mainmod.ConfigError("unknown workspace")
+
+    _patch_main_context(monkeypatch, ctx=ctx, resolved=_resolved_config())
+    monkeypatch.setattr(mainmod, "select_workspaces", fake_select_workspaces)
+
+    with pytest.raises(SystemExit) as excinfo:
+        mainmod.main()
+
+    assert excinfo.value.code == 1
+    assert "unknown workspace" in capsys.readouterr().err
+
+
 def test_main_dispatches_deploy_all_workspaces(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     ctx = _deploy_ctx(verbose=True)
-
-    def fake_parse_cli(_argv: list[str], _cwd: Path) -> DeployContext:
-        return ctx
-
-    def fake_load_config(_path: Path) -> dict[str, object]:
-        return {}
-
-    def fake_resolve_config(_cfg: dict[str, object], _path: Path) -> ResolvedConfig:
-        return _resolved_config()
 
     class _DeployCall(TypedDict):
         workspaces: list[Workspace]
@@ -99,20 +100,14 @@ def test_main_dispatches_deploy_all_workspaces(
         dry_run: bool
         verbose: bool
 
-    called: list[_DeployCall] = []
-
-    def fake_run_deploy(**kwargs: object) -> None:
-        called.append(cast(_DeployCall, kwargs))
-
-    monkeypatch.setattr(mainmod, "parse_cli", fake_parse_cli)
-    monkeypatch.setattr(mainmod, "load_config", fake_load_config)
-    monkeypatch.setattr(mainmod, "resolve_config", fake_resolve_config)
-    monkeypatch.setattr(mainmod, "run_deploy", fake_run_deploy)
+    run_deploy_mock = create_autospec(mainmod.run_deploy)
+    monkeypatch.setattr(mainmod, "run_deploy", run_deploy_mock)
+    _patch_main_context(monkeypatch, ctx=ctx, resolved=_resolved_config())
 
     mainmod.main()
 
-    assert len(called) == 1
-    deploy_call = called[0]
+    assert run_deploy_mock.call_count == 1
+    deploy_call = cast(_DeployCall, run_deploy_mock.call_args.kwargs)
     workspaces = deploy_call["workspaces"]
     names = [ws.name for ws in workspaces]
     assert names == ["alpha", "zeta"]
@@ -126,35 +121,20 @@ def test_main_dispatches_adopt_workspace(
 ) -> None:
     ctx: AdoptContext = _adopt_ctx(dry_run=True, verbose=True)
 
-    def fake_parse_cli(_argv: list[str], _cwd: Path) -> AdoptContext:
-        return ctx
-
-    def fake_load_config(_path: Path) -> dict[str, object]:
-        return {}
-
-    def fake_resolve_config(_cfg: dict[str, object], _path: Path) -> ResolvedConfig:
-        return _resolved_config()
-
     class _AdoptCall(TypedDict):
         workspace: Workspace
         path: str
         dry_run: bool
         verbose: bool
 
-    called: list[_AdoptCall] = []
-
-    def fake_run_adopt(**kwargs: object) -> None:
-        called.append(cast(_AdoptCall, kwargs))
-
-    monkeypatch.setattr(mainmod, "parse_cli", fake_parse_cli)
-    monkeypatch.setattr(mainmod, "load_config", fake_load_config)
-    monkeypatch.setattr(mainmod, "resolve_config", fake_resolve_config)
-    monkeypatch.setattr(mainmod, "run_adopt", fake_run_adopt)
+    run_adopt_mock = create_autospec(mainmod.run_adopt)
+    monkeypatch.setattr(mainmod, "run_adopt", run_adopt_mock)
+    _patch_main_context(monkeypatch, ctx=ctx, resolved=_resolved_config())
 
     mainmod.main()
 
-    assert len(called) == 1
-    adopt_call = called[0]
+    assert run_adopt_mock.call_count == 1
+    adopt_call = cast(_AdoptCall, run_adopt_mock.call_args.kwargs)
     assert adopt_call["workspace"].name == "alpha"
     assert adopt_call["path"] == "docs"
     assert adopt_call["dry_run"] is True
@@ -206,4 +186,27 @@ def _resolved_config() -> ResolvedConfig:
                 name="alpha", path=Path("/alpha"), include=(), exclude=()
             ),
         },
+    )
+
+
+def _patch_main_context(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    ctx: AdoptContext | DeployContext,
+    resolved: ResolvedConfig,
+) -> None:
+    monkeypatch.setattr(
+        mainmod,
+        "parse_cli",
+        create_autospec(mainmod.parse_cli, return_value=ctx),
+    )
+    monkeypatch.setattr(
+        mainmod,
+        "load_config",
+        create_autospec(mainmod.load_config, return_value={}),
+    )
+    monkeypatch.setattr(
+        mainmod,
+        "resolve_config",
+        create_autospec(mainmod.resolve_config, return_value=resolved),
     )
