@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 import os
 from pathlib import Path
 from pathlib import PurePosixPath
@@ -50,17 +51,24 @@ class SyncError(RuntimeError):
 
 
 @dataclass(frozen=True)
-class SyncOperation:
-    source: Path
-    destination: Path
-
-
-@dataclass(frozen=True)
 class SyncPlan:
     source_path: Path
     target_path: Path
     source_is_dir: bool
-    operations: tuple[SyncOperation, ...]
+    operations: tuple["SyncOperation", ...]
+
+
+@dataclass(frozen=True)
+class SyncOperation:
+    source: Path
+    destination: Path
+    action: "SyncAction"
+
+
+class SyncAction(str, Enum):
+    COPY = "COPY"
+    REPLACE = "REPLACE"
+    SKIP = "SKIP"
 
 
 def _resolve_subpath(base: Path, subpath: str) -> Path:
@@ -88,31 +96,54 @@ def _plan_copy_operations(
 ) -> list[SyncOperation]:
     if source_path.is_file():
         rel_to_root = Path(source_path.name)
-        if not _is_included(rel_to_root, source_include, source_exclude):
+        if not _is_selected(rel_to_root, source_include, source_exclude):
             return []
-        if not _is_included(rel_to_root, target_include, target_exclude):
-            return []
-        return [SyncOperation(source=source_path, destination=target_path)]
+        if not _is_selected(rel_to_root, target_include, target_exclude):
+            return [
+                SyncOperation(
+                    source=source_path,
+                    destination=target_path,
+                    action=SyncAction.SKIP,
+                )
+            ]
+        action = SyncAction.REPLACE if target_path.exists() else SyncAction.COPY
+        return [
+            SyncOperation(
+                source=source_path,
+                destination=target_path,
+                action=action,
+            )
+        ]
 
     ops: list[SyncOperation] = []
     for dirpath, _dirnames, filenames in os.walk(source_path):
         for filename in filenames:
             source_file = Path(dirpath) / filename
             rel_to_root = source_file.relative_to(source_path)
-            if not _is_included(rel_to_root, source_include, source_exclude):
+            if not _is_selected(rel_to_root, source_include, source_exclude):
                 continue
-            if not _is_included(rel_to_root, target_include, target_exclude):
+            if not _is_selected(rel_to_root, target_include, target_exclude):
+                ops.append(
+                    SyncOperation(
+                        source=source_file,
+                        destination=target_path / rel_to_root,
+                        action=SyncAction.SKIP,
+                    )
+                )
                 continue
+            destination = target_path / rel_to_root
+            action = SyncAction.REPLACE if destination.exists() else SyncAction.COPY
             ops.append(
                 SyncOperation(
                     source=source_file,
-                    destination=target_path / rel_to_root,
+                    destination=destination,
+                    action=action,
                 )
             )
     return ops
 
 
-def _is_included(
+def _is_selected(
     rel_path: Path,
     include: tuple[str, ...],
     exclude: tuple[str, ...],

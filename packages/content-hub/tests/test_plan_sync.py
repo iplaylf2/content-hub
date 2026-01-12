@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from contentctl.plan import SyncError, plan_sync
+from contentctl.plan import SyncAction, SyncError, plan_sync
 
 
 def test_plan_sync_rejects_absolute_path() -> None:
@@ -92,6 +92,55 @@ def test_plan_sync_file_source() -> None:
     assert len(plan.operations) == 1
     assert plan.operations[0].source == source_root / "note.txt"
     assert plan.operations[0].destination == target_root / "note.txt"
+
+
+def test_plan_sync_reports_target_skips() -> None:
+    source_root = _fixture_path("source_dir")
+    target_root = _fixture_path("target_dir")
+
+    plan = plan_sync(
+        source_root=source_root,
+        target_root=target_root,
+        path=".",
+        source_include=(),
+        source_exclude=(),
+        target_include=("*.txt", "**/*.txt"),
+        target_exclude=("sub/*",),
+    )
+
+    actions = {
+        str(op.destination.relative_to(target_root)): op.action
+        for op in plan.operations
+    }
+
+    assert actions["a.txt"] is SyncAction.COPY
+    assert actions["b.md"] is SyncAction.SKIP
+    assert actions["sub/c.txt"] is SyncAction.SKIP
+
+
+def test_plan_sync_marks_replace(tmp_path: Path) -> None:
+    source_root = tmp_path / "source"
+    target_root = tmp_path / "target"
+    source_root.mkdir()
+    target_root.mkdir()
+
+    source_file = source_root / "note.txt"
+    source_file.write_text("new", encoding="utf-8")
+    target_file = target_root / "note.txt"
+    target_file.write_text("existing", encoding="utf-8")
+
+    plan = plan_sync(
+        source_root=source_root,
+        target_root=target_root,
+        path="note.txt",
+        source_include=(),
+        source_exclude=(),
+        target_include=(),
+        target_exclude=(),
+    )
+
+    assert len(plan.operations) == 1
+    assert plan.operations[0].action is SyncAction.REPLACE
 
 
 def _fixture_path(name: str) -> Path:
