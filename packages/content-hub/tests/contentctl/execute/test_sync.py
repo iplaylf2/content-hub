@@ -8,7 +8,6 @@ import pytest
 from tests.contentctl.execute.fixtures import (
     SOURCE_ROOT,
     DESTINATION_ROOT,
-    make_file_plan,
     make_plan,
     make_sync_op,
 )
@@ -57,23 +56,6 @@ def test_print_sync_plan_formats_lines() -> None:
         "COPY    /virtual/source/guide.txt -> /virtual/destination/guide.txt",
         "SKIP    /virtual/source/drafts.txt -> /virtual/destination/drafts.txt",
     ]
-
-
-def test_apply_sync_plan_no_ops_does_not_create_dirs(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    mkdir_calls: list[Path] = []
-
-    def fake_mkdir(self: Path, parents: bool = False, exist_ok: bool = False) -> None:
-        mkdir_calls.append(self)
-
-    monkeypatch.setattr(Path, "mkdir", fake_mkdir)
-
-    plan = make_file_plan("note.txt")
-
-    apply_sync_plan(plan)
-
-    assert mkdir_calls == []
 
 
 def test_apply_sync_plan_all_skip_does_not_create_dirs(

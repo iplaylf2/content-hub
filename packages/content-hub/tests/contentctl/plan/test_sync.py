@@ -72,7 +72,7 @@ def test_plan_sync_applies_include_exclude() -> None:
     assert destinations == {"guide.txt"}
 
 
-def test_plan_sync_file_source() -> None:
+def test_plan_sync_file_source_replaces() -> None:
     source_root = fixture_path("plan_sync", "source_single")
     destination_root = fixture_path("plan_sync", "destination_single")
 
@@ -87,8 +87,10 @@ def test_plan_sync_file_source() -> None:
     )
 
     assert len(plan.operations) == 1
-    assert plan.operations[0].source == source_root / "note.txt"
-    assert plan.operations[0].destination == destination_root / "note.txt"
+    op = plan.operations[0]
+    assert op.source == source_root / "note.txt"
+    assert op.destination == destination_root / "note.txt"
+    assert op.action is SyncAction.REPLACE
 
 
 def test_plan_sync_file_source_excluded() -> None:
@@ -130,24 +132,6 @@ def test_plan_sync_reports_destination_skips() -> None:
     assert actions["guide.txt"] is SyncAction.COPY
     assert actions["readme.md"] is SyncAction.SKIP
     assert actions["sub/chapter.txt"] is SyncAction.SKIP
-
-
-def test_plan_sync_marks_replace() -> None:
-    source_root = fixture_path("plan_sync", "source_single")
-    destination_root = fixture_path("plan_sync", "destination_single")
-
-    plan = plan_sync(
-        source_root=source_root,
-        destination_root=destination_root,
-        path="note.txt",
-        source_include=(),
-        source_exclude=(),
-        destination_include=(),
-        destination_exclude=(),
-    )
-
-    assert len(plan.operations) == 1
-    assert plan.operations[0].action is SyncAction.REPLACE
 
 
 @pytest.mark.parametrize(

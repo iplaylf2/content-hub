@@ -97,46 +97,19 @@ def test_run_adopt_applies_plan(
     assert printed == []
 
 
-def test_run_adopt_dry_run_prints_plan(
+@pytest.mark.parametrize(
+    ("dry_run", "verbose", "expects_apply", "summary"),
+    [
+        (True, False, False, "planned"),
+        (False, True, True, "copied"),
+    ],
+)
+def test_run_adopt_prints_plan_when_requested(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    plan = _fake_plan()
-    printed: list[SyncPlan] = []
-
-    def record_print(plan_arg: SyncPlan, _output: TextIO) -> None:
-        printed.append(plan_arg)
-
-    plan_sync_mock = create_autospec(adopt_mod.plan_sync, return_value=plan)
-    print_sync_plan_mock = create_autospec(
-        adopt_mod.print_sync_plan,
-        side_effect=record_print,
-    )
-    apply_sync_plan_mock = create_autospec(
-        adopt_mod.apply_sync_plan,
-        side_effect=AssertionError("apply should not run"),
-    )
-    monkeypatch.setattr(adopt_mod, "plan_sync", plan_sync_mock)
-    monkeypatch.setattr(adopt_mod, "print_sync_plan", print_sync_plan_mock)
-    monkeypatch.setattr(adopt_mod, "apply_sync_plan", apply_sync_plan_mock)
-
-    output = StringIO()
-    run_adopt(
-        workspace=make_workspace("docs", "/ws"),
-        origin=ORIGIN,
-        path=DEFAULT_PATH,
-        dry_run=True,
-        verbose=False,
-        output=output,
-    )
-
-    text = output.getvalue()
-    assert "adopt docs:" in text
-    assert f"{len(plan.operations)} files planned" in text
-    assert printed == [plan]
-
-
-def test_run_adopt_verbose_prints_plan(
-    monkeypatch: pytest.MonkeyPatch,
+    dry_run: bool,
+    verbose: bool,
+    expects_apply: bool,
+    summary: str,
 ) -> None:
     plan = _fake_plan()
     applied: list[SyncPlan] = []
@@ -151,7 +124,9 @@ def test_run_adopt_verbose_prints_plan(
     plan_sync_mock = create_autospec(adopt_mod.plan_sync, return_value=plan)
     apply_sync_plan_mock = create_autospec(
         adopt_mod.apply_sync_plan,
-        side_effect=record_apply,
+        side_effect=(
+            record_apply if expects_apply else AssertionError("apply should not run")
+        ),
     )
     print_sync_plan_mock = create_autospec(
         adopt_mod.print_sync_plan,
@@ -166,15 +141,15 @@ def test_run_adopt_verbose_prints_plan(
         workspace=make_workspace("docs", "/ws"),
         origin=ORIGIN,
         path=DEFAULT_PATH,
-        dry_run=False,
-        verbose=True,
+        dry_run=dry_run,
+        verbose=verbose,
         output=output,
     )
 
     text = output.getvalue()
     assert "adopt docs:" in text
-    assert f"{len(plan.operations)} files copied" in text
-    assert applied == [plan]
+    assert f"{len(plan.operations)} files {summary}" in text
+    assert applied == ([plan] if expects_apply else [])
     assert printed == [plan]
 
 
