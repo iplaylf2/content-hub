@@ -2,6 +2,7 @@ basedpyright
 coderabbitai
 docstrings
 jsonschema
+pytest
 pyyaml
 setuptools
 shellcheck

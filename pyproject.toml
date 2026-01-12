@@ -2,4 +2,4 @@
 members = ["packages/content-hub"]
 
 [dependency-groups]
-dev = ["basedpyright>=1.37.1"]
+dev = ["basedpyright>=1.37.1", "pytest>=9.0.2"]
