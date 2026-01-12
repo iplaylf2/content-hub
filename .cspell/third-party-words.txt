@@ -2,6 +2,7 @@ basedpyright
 coderabbitai
 docstrings
 jsonschema
+pycache
 pytest
 pyyaml
 setuptools

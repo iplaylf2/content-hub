@@ -1,6 +1,6 @@
 {
     "extraPaths": [
-        "packages/**/src"
+        "packages/content-hub/src"
     ],
     "include": [
         "packages/**/src",

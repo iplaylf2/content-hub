@@ -1,2 +1,3 @@
 contentctl
+excinfo
 iplaylf2

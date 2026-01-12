@@ -1,0 +1,4 @@
+origin: ./origin
+workspaces:
+  zeta: ./zeta
+  alpha: ./alpha
