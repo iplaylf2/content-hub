@@ -1,6 +1,6 @@
 # content-hub
 
-content-hub is a CLI tool for distributing and collecting directory content across multiple locations. Define the source and targets in a config file, then trigger sync actions with simple commands to keep content flow controlled and repeatable.
+content-hub is a CLI tool for distributing and collecting directory content across multiple locations. Define the origin and workspaces in a config file, then trigger sync actions with simple commands to keep content flow controlled and repeatable.
 
 Good fit when:
 
@@ -21,8 +21,8 @@ Create `content-hub.yaml` in your project root:
 ```yaml
 origin: ./origin
 workspaces:
-  docs: ./targets/docs
-  assets: ./targets/assets
+  docs: ./workspaces/docs
+  assets: ./workspaces/assets
 ```
 
 Run content flows:
@@ -35,5 +35,5 @@ contentctl adopt docs
 ## Config Notes
 
 - `origin` defines the source directory
-- `workspaces` maps aliases to target directories
+- `workspaces` maps aliases to workspace paths
 - add `include`/`exclude` (glob patterns) when needed; `${VAR}` env substitution is supported

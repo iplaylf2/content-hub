@@ -11,18 +11,19 @@ from pathlib import PurePosixPath
 
 def plan_sync(
     source_root: Path,
-    target_root: Path,
+    destination_root: Path,
     path: str,
     source_include: tuple[str, ...],
     source_exclude: tuple[str, ...],
-    target_include: tuple[str, ...],
-    target_exclude: tuple[str, ...],
+    destination_include: tuple[str, ...],
+    destination_exclude: tuple[str, ...],
 ) -> SyncPlan:
     source_path = _resolve_subpath(source_root, path)
-    target_path = _resolve_subpath(target_root, path)
-    if _paths_overlap(source_path, target_path):
+    destination_path = _resolve_subpath(destination_root, path)
+    if _paths_overlap(source_path, destination_path):
         raise SyncError(
-            f"Source and target paths overlap: {source_path} <-> {target_path}"
+            "Source and destination paths overlap: "
+            f"{source_path} <-> {destination_path}"
         )
 
     if not source_path.exists():
@@ -30,15 +31,15 @@ def plan_sync(
 
     operations = _plan_copy_operations(
         source_path=source_path,
-        target_path=target_path,
+        destination_path=destination_path,
         source_include=source_include,
         source_exclude=source_exclude,
-        target_include=target_include,
-        target_exclude=target_exclude,
+        destination_include=destination_include,
+        destination_exclude=destination_exclude,
     )
     return SyncPlan(
         source_path=source_path,
-        target_path=target_path,
+        destination_path=destination_path,
         operations=tuple(operations),
     )
 
@@ -50,7 +51,7 @@ class SyncError(RuntimeError):
 @dataclass(frozen=True)
 class SyncPlan:
     source_path: Path
-    target_path: Path
+    destination_path: Path
     operations: tuple["SyncOperation", ...]
 
 
@@ -84,29 +85,29 @@ def _paths_overlap(path_a: Path, path_b: Path) -> bool:
 
 def _plan_copy_operations(
     source_path: Path,
-    target_path: Path,
+    destination_path: Path,
     source_include: tuple[str, ...],
     source_exclude: tuple[str, ...],
-    target_include: tuple[str, ...],
-    target_exclude: tuple[str, ...],
+    destination_include: tuple[str, ...],
+    destination_exclude: tuple[str, ...],
 ) -> list[SyncOperation]:
     if source_path.is_file():
         rel_to_root = Path(source_path.name)
         if not _is_selected(rel_to_root, source_include, source_exclude):
             return []
-        if not _is_selected(rel_to_root, target_include, target_exclude):
+        if not _is_selected(rel_to_root, destination_include, destination_exclude):
             return [
                 SyncOperation(
                     source=source_path,
-                    destination=target_path,
+                    destination=destination_path,
                     action=SyncAction.SKIP,
                 )
             ]
-        action = SyncAction.REPLACE if target_path.exists() else SyncAction.COPY
+        action = SyncAction.REPLACE if destination_path.exists() else SyncAction.COPY
         return [
             SyncOperation(
                 source=source_path,
-                destination=target_path,
+                destination=destination_path,
                 action=action,
             )
         ]
@@ -118,16 +119,20 @@ def _plan_copy_operations(
             rel_to_root = source_file.relative_to(source_path)
             if not _is_selected(rel_to_root, source_include, source_exclude):
                 continue
-            if not _is_selected(rel_to_root, target_include, target_exclude):
+            if not _is_selected(
+                rel_to_root,
+                destination_include,
+                destination_exclude,
+            ):
                 ops.append(
                     SyncOperation(
                         source=source_file,
-                        destination=target_path / rel_to_root,
+                        destination=destination_path / rel_to_root,
                         action=SyncAction.SKIP,
                     )
                 )
                 continue
-            destination = target_path / rel_to_root
+            destination = destination_path / rel_to_root
             action = SyncAction.REPLACE if destination.exists() else SyncAction.COPY
             ops.append(
                 SyncOperation(

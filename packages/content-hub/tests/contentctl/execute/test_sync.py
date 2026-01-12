@@ -7,7 +7,7 @@ import pytest
 
 from tests.contentctl.execute.fixtures import (
     SOURCE_ROOT,
-    TARGET_ROOT,
+    DESTINATION_ROOT,
     make_file_plan,
     make_plan,
     make_sync_op,
@@ -38,7 +38,7 @@ def test_apply_sync_plan_copies_non_skip(monkeypatch: pytest.MonkeyPatch) -> Non
     apply_sync_plan(plan)
 
     assert copy_calls == [
-        (SOURCE_ROOT / "guide.txt", TARGET_ROOT / "guide.txt"),
+        (SOURCE_ROOT / "guide.txt", DESTINATION_ROOT / "guide.txt"),
     ]
     assert mkdir_calls
 
@@ -54,8 +54,8 @@ def test_print_sync_plan_formats_lines() -> None:
 
     lines = output.getvalue().splitlines()
     assert lines == [
-        "COPY    /virtual/source/guide.txt -> /virtual/target/guide.txt",
-        "SKIP    /virtual/source/drafts.txt -> /virtual/target/drafts.txt",
+        "COPY    /virtual/source/guide.txt -> /virtual/destination/guide.txt",
+        "SKIP    /virtual/source/drafts.txt -> /virtual/destination/drafts.txt",
     ]
 
 

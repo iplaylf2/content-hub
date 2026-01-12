@@ -19,16 +19,16 @@ def run_adopt(
 ) -> None:
     plan = plan_sync(
         source_root=workspace.path,
-        target_root=origin.path,
+        destination_root=origin.path,
         path=path,
         source_include=workspace.include,
         source_exclude=workspace.exclude,
-        target_include=origin.include,
-        target_exclude=origin.exclude,
+        destination_include=origin.include,
+        destination_exclude=origin.exclude,
     )
     if verbose or dry_run:
         print(
-            f"adopt {workspace.name}: {plan.source_path} -> {plan.target_path}",
+            f"adopt {workspace.name}: {plan.source_path} -> {plan.destination_path}",
             file=output,
         )
     if dry_run:

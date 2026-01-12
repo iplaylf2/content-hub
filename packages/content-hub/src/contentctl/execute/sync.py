@@ -16,7 +16,7 @@ def apply_sync_plan(plan: SyncPlan) -> None:
     )
     if not effective_ops:
         return
-    _prepare_target(plan)
+    _prepare_destination(plan)
     _apply_copy_operations(effective_ops)
 
 
@@ -28,9 +28,9 @@ def print_sync_plan(plan: SyncPlan, output: TextIO) -> None:
         )
 
 
-def _prepare_target(plan: SyncPlan) -> None:
-    target_path = plan.target_path
-    target_path.parent.mkdir(parents=True, exist_ok=True)
+def _prepare_destination(plan: SyncPlan) -> None:
+    destination_path = plan.destination_path
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
 
 
 def _apply_copy_operations(ops: Iterable[SyncOperation]) -> None:

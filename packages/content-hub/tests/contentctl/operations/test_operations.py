@@ -228,11 +228,11 @@ def test_run_deploy_verbose_prints_plan(
 def _fake_plan() -> SyncPlan:
     return SyncPlan(
         source_path=Path("/virtual/source"),
-        target_path=Path("/virtual/target"),
+        destination_path=Path("/virtual/destination"),
         operations=(
             SyncOperation(
                 source=Path("/virtual/source/guide.txt"),
-                destination=Path("/virtual/target/guide.txt"),
+                destination=Path("/virtual/destination/guide.txt"),
                 action=SyncAction.COPY,
             ),
         ),

@@ -20,16 +20,18 @@ def run_deploy(
     for workspace in workspaces:
         plan = plan_sync(
             source_root=origin.path,
-            target_root=workspace.path,
+            destination_root=workspace.path,
             path=path,
             source_include=origin.include,
             source_exclude=origin.exclude,
-            target_include=workspace.include,
-            target_exclude=workspace.exclude,
+            destination_include=workspace.include,
+            destination_exclude=workspace.exclude,
         )
         if verbose or dry_run:
             print(
-                f"deploy {workspace.name}: {plan.source_path} -> {plan.target_path}",
+                "deploy "
+                f"{workspace.name}: {plan.source_path} -> "
+                f"{plan.destination_path}",
                 file=output,
             )
         if dry_run:

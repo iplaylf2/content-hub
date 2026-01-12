@@ -21,7 +21,7 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
         case "deploy":
             workspaces = list(args.workspace or [])
             all_workspaces = bool(args.all_workspaces)
-            _validate_deploy_targets(workspaces, all_workspaces, parser)
+            _validate_deploy_workspaces(workspaces, all_workspaces, parser)
             return DeployContext(
                 command="deploy",
                 config_path=config_path,
@@ -33,7 +33,7 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
             )
         case "adopt":
             workspace = args.workspace
-            _validate_adopt_target(workspace, parser)
+            _validate_adopt_workspace(workspace, parser)
             return AdoptContext(
                 command="adopt",
                 config_path=config_path,
@@ -113,11 +113,13 @@ def _resolve_config_path(config_arg: str, cwd: Path) -> Path:
     return config_path.resolve()
 
 
-def _validate_deploy_targets(
-    workspaces: list[str], all_workspaces: bool, parser: argparse.ArgumentParser
+def _validate_deploy_workspaces(
+    workspaces: list[str],
+    all_workspaces: bool,
+    parser: argparse.ArgumentParser,
 ) -> None:
     if all_workspaces and workspaces:
-        parser.error("Use either workspace targets or --all-workspaces, not both.")
+        parser.error("Use either workspaces or --all-workspaces, not both.")
     if not all_workspaces and not workspaces:
         parser.error("One or more workspaces or --all-workspaces is required.")
     for workspace in workspaces:
@@ -125,7 +127,10 @@ def _validate_deploy_targets(
             parser.error("Workspace cannot be empty.")
 
 
-def _validate_adopt_target(workspace: str, parser: argparse.ArgumentParser) -> None:
+def _validate_adopt_workspace(
+    workspace: str,
+    parser: argparse.ArgumentParser,
+) -> None:
     if not workspace.strip():
         parser.error("Workspace cannot be empty.")
 
@@ -135,7 +140,7 @@ def _add_deploy_parser(
 ) -> None:
     parser = add_parser(
         "deploy",
-        help="Copy content from origin to target.",
+        help="Copy content from origin to workspace.",
     )
     parser.add_argument(
         "--all-workspaces",
@@ -151,7 +156,7 @@ def _add_adopt_parser(
 ) -> None:
     parser = add_parser(
         "adopt",
-        help="Copy content from target to origin.",
+        help="Copy content from workspace to origin.",
     )
     _add_workspace_arg(parser)
     _add_path_arg(parser)

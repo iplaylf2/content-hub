@@ -9,57 +9,60 @@ from tests.contentctl.fixtures import fixture_path
 
 
 @pytest.mark.parametrize(
-    ("path", "target_name"),
+    ("path", "destination_name"),
     [
-        (str(Path("/") / "abs"), "target_dir"),
-        ("../escape", "target_dir"),
+        (str(Path("/") / "abs"), "destination_dir"),
+        ("../escape", "destination_dir"),
         (".", "source_dir"),
     ],
 )
-def test_plan_sync_rejects_invalid_paths(path: str, target_name: str) -> None:
+def test_plan_sync_rejects_invalid_paths(
+    path: str,
+    destination_name: str,
+) -> None:
     source_root = fixture_path("plan_sync", "source_dir")
-    target_root = fixture_path("plan_sync", target_name)
+    destination_root = fixture_path("plan_sync", destination_name)
 
     with pytest.raises(SyncError):
         plan_sync(
             source_root=source_root,
-            target_root=target_root,
+            destination_root=destination_root,
             path=path,
             source_include=(),
             source_exclude=(),
-            target_include=(),
-            target_exclude=(),
+            destination_include=(),
+            destination_exclude=(),
         )
 
 
 def test_plan_sync_rejects_missing_source(tmp_path: Path) -> None:
     source_root = tmp_path / "missing"
-    target_root = tmp_path / "target"
+    destination_root = tmp_path / "destination"
 
     with pytest.raises(SyncError):
         plan_sync(
             source_root=source_root,
-            target_root=target_root,
+            destination_root=destination_root,
             path=".",
             source_include=(),
             source_exclude=(),
-            target_include=(),
-            target_exclude=(),
+            destination_include=(),
+            destination_exclude=(),
         )
 
 
 def test_plan_sync_applies_include_exclude() -> None:
     source_root = fixture_path("plan_sync", "source_dir")
-    target_root = fixture_path("plan_sync", "target_dir")
+    destination_root = fixture_path("plan_sync", "destination_dir")
 
     plan = plan_sync(
         source_root=source_root,
-        target_root=target_root,
+        destination_root=destination_root,
         path=".",
         source_include=("*.txt", "**/*.txt"),
         source_exclude=("sub/*",),
-        target_include=("*.txt", "**/*.txt"),
-        target_exclude=(),
+        destination_include=("*.txt", "**/*.txt"),
+        destination_exclude=(),
     )
 
     sources = {op.source.name for op in plan.operations}
@@ -71,56 +74,56 @@ def test_plan_sync_applies_include_exclude() -> None:
 
 def test_plan_sync_file_source() -> None:
     source_root = fixture_path("plan_sync", "source_single")
-    target_root = fixture_path("plan_sync", "target_single")
+    destination_root = fixture_path("plan_sync", "destination_single")
 
     plan = plan_sync(
         source_root=source_root,
-        target_root=target_root,
+        destination_root=destination_root,
         path="note.txt",
         source_include=(),
         source_exclude=(),
-        target_include=(),
-        target_exclude=(),
+        destination_include=(),
+        destination_exclude=(),
     )
 
     assert len(plan.operations) == 1
     assert plan.operations[0].source == source_root / "note.txt"
-    assert plan.operations[0].destination == target_root / "note.txt"
+    assert plan.operations[0].destination == destination_root / "note.txt"
 
 
 def test_plan_sync_file_source_excluded() -> None:
     source_root = fixture_path("plan_sync", "source_single")
-    target_root = fixture_path("plan_sync", "target_single")
+    destination_root = fixture_path("plan_sync", "destination_single")
 
     plan = plan_sync(
         source_root=source_root,
-        target_root=target_root,
+        destination_root=destination_root,
         path="note.txt",
         source_include=(),
         source_exclude=("*.txt",),
-        target_include=(),
-        target_exclude=(),
+        destination_include=(),
+        destination_exclude=(),
     )
 
     assert plan.operations == ()
 
 
-def test_plan_sync_reports_target_skips() -> None:
+def test_plan_sync_reports_destination_skips() -> None:
     source_root = fixture_path("plan_sync", "source_dir")
-    target_root = fixture_path("plan_sync", "target_dir")
+    destination_root = fixture_path("plan_sync", "destination_dir")
 
     plan = plan_sync(
         source_root=source_root,
-        target_root=target_root,
+        destination_root=destination_root,
         path=".",
         source_include=(),
         source_exclude=(),
-        target_include=("*.txt", "**/*.txt"),
-        target_exclude=("sub/*",),
+        destination_include=("*.txt", "**/*.txt"),
+        destination_exclude=("sub/*",),
     )
 
     actions = {
-        str(op.destination.relative_to(target_root)): op.action
+        str(op.destination.relative_to(destination_root)): op.action
         for op in plan.operations
     }
 
@@ -131,16 +134,16 @@ def test_plan_sync_reports_target_skips() -> None:
 
 def test_plan_sync_marks_replace() -> None:
     source_root = fixture_path("plan_sync", "source_single")
-    target_root = fixture_path("plan_sync", "target_single")
+    destination_root = fixture_path("plan_sync", "destination_single")
 
     plan = plan_sync(
         source_root=source_root,
-        target_root=target_root,
+        destination_root=destination_root,
         path="note.txt",
         source_include=(),
         source_exclude=(),
-        target_include=(),
-        target_exclude=(),
+        destination_include=(),
+        destination_exclude=(),
     )
 
     assert len(plan.operations) == 1
@@ -148,7 +151,7 @@ def test_plan_sync_marks_replace() -> None:
 
 
 @pytest.mark.parametrize(
-    ("source_root", "target_root", "path"),
+    ("source_root", "destination_root", "path"),
     [
         ("source_dir", "source_dir", "."),
         ("source_dir", "source_dir/sub", "."),
@@ -157,32 +160,32 @@ def test_plan_sync_marks_replace() -> None:
 )
 def test_plan_sync_rejects_overlapping_paths(
     source_root: str,
-    target_root: str,
+    destination_root: str,
     path: str,
 ) -> None:
     with pytest.raises(SyncError):
         plan_sync(
             source_root=fixture_path("plan_sync", source_root),
-            target_root=fixture_path("plan_sync", target_root),
+            destination_root=fixture_path("plan_sync", destination_root),
             path=path,
             source_include=(),
             source_exclude=(),
-            target_include=(),
-            target_exclude=(),
+            destination_include=(),
+            destination_exclude=(),
         )
 
 
-def test_plan_sync_file_target_exclude_marks_skip() -> None:
+def test_plan_sync_file_destination_exclude_marks_skip() -> None:
     source_root = fixture_path("plan_sync", "source_single")
-    target_root = fixture_path("plan_sync", "target_single")
+    destination_root = fixture_path("plan_sync", "destination_single")
     plan = plan_sync(
         source_root=source_root,
-        target_root=target_root,
+        destination_root=destination_root,
         path="note.txt",
         source_include=(),
         source_exclude=(),
-        target_include=(),
-        target_exclude=("*.txt",),
+        destination_include=(),
+        destination_exclude=("*.txt",),
     )
 
     assert len(plan.operations) == 1
