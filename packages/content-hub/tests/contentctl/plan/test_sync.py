@@ -8,15 +8,23 @@ from contentctl.plan import SyncAction, SyncError, plan_sync
 from conftest import FIXTURES_ROOT
 
 
-def test_plan_sync_rejects_absolute_path() -> None:
+@pytest.mark.parametrize(
+    ("path", "target_name"),
+    [
+        (str(Path("/") / "abs"), "target_dir"),
+        ("../escape", "target_dir"),
+        (".", "source_dir"),
+    ],
+)
+def test_plan_sync_rejects_invalid_paths(path: str, target_name: str) -> None:
     source_root = _fixture_path("source_dir")
-    target_root = _fixture_path("target_dir")
+    target_root = _fixture_path(target_name)
 
     with pytest.raises(SyncError):
         plan_sync(
             source_root=source_root,
             target_root=target_root,
-            path=str(Path("/") / "abs"),
+            path=path,
             source_include=(),
             source_exclude=(),
             target_include=(),
@@ -24,29 +32,14 @@ def test_plan_sync_rejects_absolute_path() -> None:
         )
 
 
-def test_plan_sync_rejects_path_escape() -> None:
-    source_root = _fixture_path("source_dir")
-    target_root = _fixture_path("target_dir")
+def test_plan_sync_rejects_missing_source(tmp_path: Path) -> None:
+    source_root = tmp_path / "missing"
+    target_root = tmp_path / "target"
 
     with pytest.raises(SyncError):
         plan_sync(
             source_root=source_root,
             target_root=target_root,
-            path="../escape",
-            source_include=(),
-            source_exclude=(),
-            target_include=(),
-            target_exclude=(),
-        )
-
-
-def test_plan_sync_rejects_overlapping_paths() -> None:
-    source_root = _fixture_path("source_dir")
-
-    with pytest.raises(SyncError):
-        plan_sync(
-            source_root=source_root,
-            target_root=source_root,
             path=".",
             source_include=(),
             source_exclude=(),
@@ -72,8 +65,8 @@ def test_plan_sync_applies_include_exclude() -> None:
     sources = {op.source.name for op in plan.operations}
     destinations = {op.destination.name for op in plan.operations}
 
-    assert sources == {"a.txt"}
-    assert destinations == {"a.txt"}
+    assert sources == {"guide.txt"}
+    assert destinations == {"guide.txt"}
 
 
 def test_plan_sync_file_source() -> None:
@@ -114,21 +107,14 @@ def test_plan_sync_reports_target_skips() -> None:
         for op in plan.operations
     }
 
-    assert actions["a.txt"] is SyncAction.COPY
-    assert actions["b.md"] is SyncAction.SKIP
-    assert actions["sub/c.txt"] is SyncAction.SKIP
+    assert actions["guide.txt"] is SyncAction.COPY
+    assert actions["readme.md"] is SyncAction.SKIP
+    assert actions["sub/chapter.txt"] is SyncAction.SKIP
 
 
-def test_plan_sync_marks_replace(tmp_path: Path) -> None:
-    source_root = tmp_path / "source"
-    target_root = tmp_path / "target"
-    source_root.mkdir()
-    target_root.mkdir()
-
-    source_file = source_root / "note.txt"
-    source_file.write_text("new", encoding="utf-8")
-    target_file = target_root / "note.txt"
-    target_file.write_text("existing", encoding="utf-8")
+def test_plan_sync_marks_replace() -> None:
+    source_root = _fixture_path("source_single")
+    target_root = _fixture_path("target_single")
 
     plan = plan_sync(
         source_root=source_root,

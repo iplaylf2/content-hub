@@ -3,6 +3,7 @@ basedpyright
 coderabbitai
 docstrings
 jsonschema
+monkeypatch
 pycache
 pytest
 pyyaml

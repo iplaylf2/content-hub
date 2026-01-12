@@ -50,7 +50,7 @@ def test_run_deploy_dry_run_prints_plan(
     assert printed == [plan]
 
 
-def test_run_deploy_verbose_applies_plan(
+def test_run_adopt_applies_plan(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     plan = _fake_plan()
@@ -66,52 +66,12 @@ def test_run_deploy_verbose_applies_plan(
     def fake_print_sync_plan(plan_arg: SyncPlan, _output: StringIO) -> None:
         printed.append(plan_arg)
 
-    monkeypatch.setattr("contentctl.operations.deploy.plan_sync", fake_plan_sync)
-    monkeypatch.setattr(
-        "contentctl.operations.deploy.apply_sync_plan", fake_apply_sync_plan
-    )
-    monkeypatch.setattr(
-        "contentctl.operations.deploy.print_sync_plan", fake_print_sync_plan
-    )
-
-    output = StringIO()
-    run_deploy(
-        workspaces=[Workspace(name="docs", path=Path("/ws"), include=(), exclude=())],
-        origin=Workspace(name="", path=Path("/origin"), include=(), exclude=()),
-        path=".",
-        dry_run=False,
-        verbose=True,
-        output=output,
-    )
-
-    text = output.getvalue()
-    assert "deploy docs:" in text
-    assert f"{len(plan.operations)} files copied" in text
-    assert applied == [plan]
-    assert printed == [plan]
-
-
-def test_run_adopt_dry_run_prints_plan(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    plan = _fake_plan()
-    printed: list[SyncPlan] = []
-
-    def fake_plan_sync(**_kwargs: object) -> SyncPlan:
-        return plan
-
-    def fake_print_sync_plan(plan_arg: SyncPlan, _output: StringIO) -> None:
-        printed.append(plan_arg)
-
-    def fail_apply_sync_plan(_plan: SyncPlan) -> None:
-        raise AssertionError("apply should not run")
-
     monkeypatch.setattr("contentctl.operations.adopt.plan_sync", fake_plan_sync)
     monkeypatch.setattr(
-        "contentctl.operations.adopt.print_sync_plan", fake_print_sync_plan
+        "contentctl.operations.adopt.apply_sync_plan", fake_apply_sync_plan
     )
     monkeypatch.setattr(
-        "contentctl.operations.adopt.apply_sync_plan", fail_apply_sync_plan
+        "contentctl.operations.adopt.print_sync_plan", fake_print_sync_plan
     )
 
     output = StringIO()
@@ -119,15 +79,16 @@ def test_run_adopt_dry_run_prints_plan(
         workspace=Workspace(name="docs", path=Path("/ws"), include=(), exclude=()),
         origin=Workspace(name="", path=Path("/origin"), include=(), exclude=()),
         path=".",
-        dry_run=True,
-        verbose=True,
+        dry_run=False,
+        verbose=False,
         output=output,
     )
 
     text = output.getvalue()
     assert "adopt docs:" in text
-    assert f"{len(plan.operations)} files planned" in text
-    assert printed == [plan]
+    assert f"{len(plan.operations)} files copied" in text
+    assert applied == [plan]
+    assert printed == []
 
 
 def _fake_plan() -> SyncPlan:

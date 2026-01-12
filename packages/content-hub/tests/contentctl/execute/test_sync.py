@@ -82,3 +82,25 @@ def test_print_sync_plan_formats_lines() -> None:
         "COPY    /virtual/source/a.txt -> /virtual/target/a.txt",
         "SKIP    /virtual/source/b.txt -> /virtual/target/b.txt",
     ]
+
+
+def test_apply_sync_plan_no_ops_does_not_create_dirs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    mkdir_calls: list[Path] = []
+
+    def fake_mkdir(self: Path, parents: bool = False, exist_ok: bool = False) -> None:
+        mkdir_calls.append(self)
+
+    monkeypatch.setattr(Path, "mkdir", fake_mkdir)
+
+    plan = SyncPlan(
+        source_path=Path("/virtual/source/note.txt"),
+        target_path=Path("/virtual/target/note.txt"),
+        source_is_dir=False,
+        operations=(),
+    )
+
+    apply_sync_plan(plan)
+
+    assert mkdir_calls == []

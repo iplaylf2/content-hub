@@ -36,29 +36,17 @@ def test_load_config_missing_file(tmp_path: Path) -> None:
         load_config(config_path)
 
 
-def test_load_config_empty_file() -> None:
-    config_path = _fixture_path("config_empty.yaml")
-
-    with pytest.raises(ConfigError):
-        load_config(config_path)
-
-
-def test_load_config_invalid_yaml() -> None:
-    config_path = _fixture_path("config_invalid_yaml.yaml")
-
-    with pytest.raises(ConfigError):
-        load_config(config_path)
-
-
-def test_load_config_invalid_root_type() -> None:
-    config_path = _fixture_path("config_invalid_root.yaml")
-
-    with pytest.raises(ConfigError):
-        load_config(config_path)
-
-
-def test_load_config_schema_error() -> None:
-    config_path = _fixture_path("config_schema_error.yaml")
+@pytest.mark.parametrize(
+    "fixture",
+    [
+        "config_empty.yaml",
+        "config_invalid_yaml.yaml",
+        "config_invalid_root.yaml",
+        "config_schema_error.yaml",
+    ],
+)
+def test_load_config_invalid_files(fixture: str) -> None:
+    config_path = _fixture_path(fixture)
 
     with pytest.raises(ConfigError):
         load_config(config_path)
