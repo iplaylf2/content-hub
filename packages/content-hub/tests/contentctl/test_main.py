@@ -117,6 +117,39 @@ def test_main_dispatches_deploy_all_workspaces(
     assert deploy_call["verbose"] is True
 
 
+def test_main_dispatches_deploy_selected_workspaces(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ctx = _deploy_ctx(all_workspaces=False, workspaces=["alpha", "zeta"])
+    resolved = _resolved_config()
+    selected = [
+        make_workspace("alpha", "/alpha"),
+        make_workspace("zeta", "/zeta"),
+    ]
+
+    select_workspaces_mock = create_autospec(
+        mainmod.select_workspaces, return_value=selected
+    )
+    select_all_workspaces_mock = create_autospec(
+        mainmod.select_all_workspaces,
+        side_effect=AssertionError("select_all_workspaces should not run"),
+    )
+    run_deploy_mock = create_autospec(mainmod.run_deploy)
+    monkeypatch.setattr(mainmod, "select_workspaces", select_workspaces_mock)
+    monkeypatch.setattr(mainmod, "select_all_workspaces", select_all_workspaces_mock)
+    monkeypatch.setattr(mainmod, "run_deploy", run_deploy_mock)
+    _patch_main_context(monkeypatch, ctx=ctx, resolved=resolved)
+
+    mainmod.main()
+
+    select_workspaces_mock.assert_called_once_with(resolved, ["alpha", "zeta"])
+    deploy_call = run_deploy_mock.call_args.kwargs
+    assert deploy_call["workspaces"] == selected
+    assert deploy_call["path"] == DEFAULT_PATH
+    assert deploy_call["dry_run"] is False
+    assert deploy_call["verbose"] is False
+
+
 def test_main_dispatches_adopt_workspace(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

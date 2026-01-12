@@ -29,6 +29,28 @@ def test_load_config_env_substitution(
     assert config["workspaces"]["docs"].endswith("/docs")
 
 
+def test_load_config_env_substitution_nested(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    launchpad = tmp_path / "launchpad"
+    monkeypatch.setenv("ROCKET_LAUNCHPAD", str(launchpad))
+    monkeypatch.delenv("MISSING_VAR", raising=False)
+    config_path = fixture_path("config_env_nested.yaml")
+
+    config = load_config(config_path)
+
+    assert config["defaults"]["exclude"] == [f"{launchpad}/tmp/*"]
+    assert config["origin"]["path"] == f"{launchpad}/origin"
+    assert config["origin"]["include"] == [
+        f"{launchpad}/docs/*.md",
+        "/fallback/*.md",
+    ]
+    assert config["workspaces"]["docs"]["path"] == f"{launchpad}/docs"
+    assert config["workspaces"]["docs"]["include"] == [f"{launchpad}/docs/*.md"]
+    assert config["workspaces"]["docs"]["exclude"] == [f"{launchpad}/docs/drafts/*.md"]
+    assert config["workspaces"]["assets"] == f"{launchpad}/assets"
+
+
 def test_load_config_missing_file(tmp_path: Path) -> None:
     config_path = tmp_path / "missing.yaml"
 

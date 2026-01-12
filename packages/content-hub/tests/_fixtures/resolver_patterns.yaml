@@ -1,0 +1,20 @@
+defaults:
+  include:
+    - " ./docs/** "
+    - "assets\\**"
+    - "   "
+  exclude:
+    - "./build/**"
+origin:
+  path: ./origin
+  include:
+    - " ./origin/** "
+workspaces:
+  site:
+    path: ./site
+    include:
+      - ".\\site\\**"
+      - "  "
+    exclude:
+      - " ./site/tmp/** "
+  assets: ./assets

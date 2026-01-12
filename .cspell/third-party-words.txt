@@ -1,6 +1,7 @@
 addopts
 basedpyright
 coderabbitai
+delenv
 docstrings
 jsonschema
 monkeypatch

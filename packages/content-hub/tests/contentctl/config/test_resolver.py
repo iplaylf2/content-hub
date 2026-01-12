@@ -55,5 +55,31 @@ def test_select_workspaces_unknown() -> None:
         select_workspaces(resolved, ["missing"])
 
 
+def test_resolve_config_normalizes_patterns() -> None:
+    config_path = fixture_path("resolver_patterns.yaml")
+    config = _load_fixture(config_path)
+
+    resolved = resolve_config(config, config_path)
+
+    assert resolved.origin.include == (
+        "docs/**",
+        "assets/**",
+        "origin/**",
+    )
+    assert resolved.origin.exclude == ("build/**",)
+
+    site = resolved.workspaces["site"]
+    assert site.include == (
+        "docs/**",
+        "assets/**",
+        "site/**",
+    )
+    assert site.exclude == ("build/**", "site/tmp/**")
+
+    assets = resolved.workspaces["assets"]
+    assert assets.include == ("docs/**", "assets/**")
+    assert assets.exclude == ("build/**",)
+
+
 def _load_fixture(path: Path) -> dict[str, object]:
     return yaml.safe_load(path.read_text(encoding="utf-8"))
