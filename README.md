@@ -1,83 +1,39 @@
 # content-hub
 
-content-hub is a command-line tool for managing the lifecycle of directory content across multiple locations.
+content-hub is a CLI tool for distributing and collecting directory content across multiple locations. Define the source and targets in a config file, then trigger sync actions with simple commands to keep content flow controlled and repeatable.
 
-It operates on directories as content units and provides explicit actions for moving them between locations.
+Good fit when:
 
-## Design stance
+- one source needs to be delivered to multiple directories or teams
+- directory copy flows should be configured and reusable
+- content paths must be managed without reshaping the structure
 
-content-hub only acts on content that is explicitly selected.
-The presence of files or directories alone does not make them part of a workflow.
+## Quick Start
 
-The tool does not derive meaning from the surrounding environment and treats directories as opaque content.
-Interpretation and policy are left to the user.
-
-## Status
-
-This project is in an early stage.
-Usage and workflows will be documented as the implementation evolves.
-
-## CLI usage
-
-The CLI exposes a small set of explicit commands for operating on directory content.
-All command context is derived from a selected config file.
-
-By default, the CLI looks for `content-hub.yaml` in the current working directory.
-This file is a conventional entry point, not an inferred environment.
-
-The CLI itself does not impose rules on content structure or policy.
-Instead, the config defines relationships, aliases, and path anchors that determine how commands are interpreted.
-
-### Config and workspace model
-
-A config file primarily registers workspaces.
-
-A workspace is a named path anchor:
-
-- it defines a base path
-- relative paths are resolved against it
-- it does not imply state, activation, or content semantics
-
-Workspaces exist only in the config.
-The CLI does not infer or discover them from the filesystem.
-
-### Command form
+Requires Python 3.14+.
 
 ```bash
-contentctl [--config <path>] deploy <workspace>... [--path <path>]
-contentctl [--config <path>] deploy --all-workspaces [--path <path>]
-contentctl [--config <path>] adopt <workspace> [--path <path>]
+pip install content-hub
 ```
 
-`--config` is optional and defaults to `content-hub.yaml` in the current directory.
-`<workspace>` is a workspace alias defined in the config (no path suffix).
-`--path` is optional and defaults to `.` within each targeted workspace; it assumes the origin directory and each workspace directory share a compatible structure (e.g., `--path api` maps `origin/api` to `<workspace>/api`).
-`--all-workspaces` is deploy-only.
+Create `content-hub.yaml` in your project root:
 
-### Examples
+```yaml
+origin: ./origin
+workspaces:
+  docs: ./targets/docs
+  assets: ./targets/assets
+```
+
+Run content flows:
 
 ```bash
-# deploy an entire workspace
 contentctl deploy docs
-
-# deploy multiple workspaces
-contentctl deploy docs assets
-
-# deploy a path within a workspace
-contentctl deploy docs --path api
-
-# deploy a path across all workspaces
-contentctl deploy --all-workspaces --path api
-
-# adopt content back from a workspace
 contentctl adopt docs
-
-# adopt a path within a workspace
-contentctl adopt docs --path api
-
-# use an explicit config file
-contentctl deploy docs -c content-hub.yaml
 ```
 
-In all cases, the selected config defines the available workspaces, their path anchors,
-and the policy governing how content is handled.
+## Config Notes
+
+- `origin` defines the source directory
+- `workspaces` maps aliases to target directories
+- add `include`/`exclude` (glob patterns) when needed; `${VAR}` env substitution is supported
