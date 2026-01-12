@@ -73,3 +73,10 @@ def test_parse_cli_accepts_absolute_config_path(tmp_path: Path) -> None:
     ctx = parse_cli(["--config", str(config_path), "deploy", "docs"], tmp_path)
 
     assert ctx.config_path == config_path.resolve()
+
+
+def test_parse_cli_sets_flags(tmp_path: Path) -> None:
+    ctx = parse_cli(["--dry-run", "--verbose", "deploy", "docs"], tmp_path)
+
+    assert ctx.dry_run is True
+    assert ctx.verbose is True

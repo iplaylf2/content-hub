@@ -88,6 +88,23 @@ def test_plan_sync_file_source() -> None:
     assert plan.operations[0].destination == target_root / "note.txt"
 
 
+def test_plan_sync_file_source_excluded() -> None:
+    source_root = fixture_path("plan_sync", "source_single")
+    target_root = fixture_path("plan_sync", "target_single")
+
+    plan = plan_sync(
+        source_root=source_root,
+        target_root=target_root,
+        path="note.txt",
+        source_include=(),
+        source_exclude=("*.txt",),
+        target_include=(),
+        target_exclude=(),
+    )
+
+    assert plan.operations == ()
+
+
 def test_plan_sync_reports_target_skips() -> None:
     source_root = fixture_path("plan_sync", "source_dir")
     target_root = fixture_path("plan_sync", "target_dir")
