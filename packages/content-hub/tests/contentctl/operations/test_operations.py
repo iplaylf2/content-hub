@@ -97,8 +97,8 @@ def _fake_plan() -> SyncPlan:
         target_path=Path("/virtual/target"),
         operations=(
             SyncOperation(
-                source=Path("/virtual/source/a.txt"),
-                destination=Path("/virtual/target/a.txt"),
+                source=Path("/virtual/source/guide.txt"),
+                destination=Path("/virtual/target/guide.txt"),
                 action=SyncAction.COPY,
             ),
         ),

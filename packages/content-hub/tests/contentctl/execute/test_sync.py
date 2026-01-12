@@ -28,13 +28,13 @@ def test_apply_sync_plan_copies_non_skip(monkeypatch: pytest.MonkeyPatch) -> Non
         target_path=Path("/virtual/target"),
         operations=(
             SyncOperation(
-                source=Path("/virtual/source/a.txt"),
-                destination=Path("/virtual/target/a.txt"),
+                source=Path("/virtual/source/guide.txt"),
+                destination=Path("/virtual/target/guide.txt"),
                 action=SyncAction.COPY,
             ),
             SyncOperation(
-                source=Path("/virtual/source/b.txt"),
-                destination=Path("/virtual/target/b.txt"),
+                source=Path("/virtual/source/drafts.txt"),
+                destination=Path("/virtual/target/drafts.txt"),
                 action=SyncAction.SKIP,
             ),
         ),
@@ -43,7 +43,7 @@ def test_apply_sync_plan_copies_non_skip(monkeypatch: pytest.MonkeyPatch) -> Non
     apply_sync_plan(plan)
 
     assert copy_calls == [
-        (Path("/virtual/source/a.txt"), Path("/virtual/target/a.txt")),
+        (Path("/virtual/source/guide.txt"), Path("/virtual/target/guide.txt")),
     ]
     assert mkdir_calls
 
@@ -54,13 +54,13 @@ def test_print_sync_plan_formats_lines() -> None:
         target_path=Path("/virtual/target"),
         operations=(
             SyncOperation(
-                source=Path("/virtual/source/a.txt"),
-                destination=Path("/virtual/target/a.txt"),
+                source=Path("/virtual/source/guide.txt"),
+                destination=Path("/virtual/target/guide.txt"),
                 action=SyncAction.COPY,
             ),
             SyncOperation(
-                source=Path("/virtual/source/b.txt"),
-                destination=Path("/virtual/target/b.txt"),
+                source=Path("/virtual/source/drafts.txt"),
+                destination=Path("/virtual/target/drafts.txt"),
                 action=SyncAction.SKIP,
             ),
         ),
@@ -71,8 +71,8 @@ def test_print_sync_plan_formats_lines() -> None:
 
     lines = output.getvalue().splitlines()
     assert lines == [
-        "COPY    /virtual/source/a.txt -> /virtual/target/a.txt",
-        "SKIP    /virtual/source/b.txt -> /virtual/target/b.txt",
+        "COPY    /virtual/source/guide.txt -> /virtual/target/guide.txt",
+        "SKIP    /virtual/source/drafts.txt -> /virtual/target/drafts.txt",
     ]
 
 
@@ -118,13 +118,13 @@ def test_apply_sync_plan_all_skip_does_not_create_dirs(
         target_path=Path("/virtual/target"),
         operations=(
             SyncOperation(
-                source=Path("/virtual/source/a.txt"),
-                destination=Path("/virtual/target/a.txt"),
+                source=Path("/virtual/source/drafts.txt"),
+                destination=Path("/virtual/target/drafts.txt"),
                 action=SyncAction.SKIP,
             ),
             SyncOperation(
-                source=Path("/virtual/source/b.txt"),
-                destination=Path("/virtual/target/b.txt"),
+                source=Path("/virtual/source/notes.txt"),
+                destination=Path("/virtual/target/notes.txt"),
                 action=SyncAction.SKIP,
             ),
         ),
