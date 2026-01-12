@@ -1,3 +1,5 @@
+capsys
 contentctl
 excinfo
 iplaylf2
+mainmod

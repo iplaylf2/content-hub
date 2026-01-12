@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from contentctl.config import ConfigError, load_config
+from conftest import FIXTURES_ROOT
 
 
 def test_load_config_valid() -> None:
@@ -64,4 +65,4 @@ def test_load_config_schema_error() -> None:
 
 
 def _fixture_path(name: str) -> Path:
-    return Path(__file__).resolve().parent / "fixtures" / name
+    return FIXTURES_ROOT / name

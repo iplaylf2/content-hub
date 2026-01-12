@@ -11,6 +11,7 @@ from contentctl.config import (
     select_all_workspaces,
     select_workspaces,
 )
+from conftest import FIXTURES_ROOT
 
 
 def test_resolve_config_paths_and_patterns() -> None:
@@ -55,7 +56,7 @@ def test_select_workspaces_unknown() -> None:
 
 
 def _fixture_path(name: str) -> Path:
-    return Path(__file__).resolve().parent / "fixtures" / name
+    return FIXTURES_ROOT / name
 
 
 def _load_fixture(path: Path) -> dict[str, object]:

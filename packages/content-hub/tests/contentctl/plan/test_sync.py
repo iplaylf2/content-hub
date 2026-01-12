@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from contentctl.plan import SyncAction, SyncError, plan_sync
+from conftest import FIXTURES_ROOT
 
 
 def test_plan_sync_rejects_absolute_path() -> None:
@@ -144,4 +145,4 @@ def test_plan_sync_marks_replace(tmp_path: Path) -> None:
 
 
 def _fixture_path(name: str) -> Path:
-    return Path(__file__).resolve().parent / "fixtures" / "plan_sync" / name
+    return FIXTURES_ROOT / "plan_sync" / name
