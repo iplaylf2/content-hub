@@ -18,4 +18,5 @@ def _prepend_sys_path(path: Path) -> None:
 
 
 _prepend_sys_path(TESTS_ROOT)
+_prepend_sys_path(PACKAGE_ROOT)
 _prepend_sys_path(SRC_ROOT)

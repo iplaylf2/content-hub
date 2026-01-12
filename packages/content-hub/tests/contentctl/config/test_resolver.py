@@ -11,11 +11,11 @@ from contentctl.config import (
     select_all_workspaces,
     select_workspaces,
 )
-from conftest import FIXTURES_ROOT
+from tests.contentctl.fixtures import fixture_path
 
 
 def test_resolve_config_paths_and_patterns() -> None:
-    config_path = _fixture_path("resolver_defaults.yaml")
+    config_path = fixture_path("resolver_defaults.yaml")
     config = _load_fixture(config_path)
     base_dir = config_path.parent
 
@@ -37,7 +37,7 @@ def test_resolve_config_paths_and_patterns() -> None:
 
 
 def test_select_all_workspaces_sorted() -> None:
-    config_path = _fixture_path("resolver_sort.yaml")
+    config_path = fixture_path("resolver_sort.yaml")
     config = _load_fixture(config_path)
 
     resolved = resolve_config(config, config_path)
@@ -47,16 +47,12 @@ def test_select_all_workspaces_sorted() -> None:
 
 
 def test_select_workspaces_unknown() -> None:
-    config_path = _fixture_path("resolver_unknown.yaml")
+    config_path = fixture_path("resolver_unknown.yaml")
     config = _load_fixture(config_path)
     resolved = resolve_config(config, config_path)
 
     with pytest.raises(ConfigError):
         select_workspaces(resolved, ["missing"])
-
-
-def _fixture_path(name: str) -> Path:
-    return FIXTURES_ROOT / name
 
 
 def _load_fixture(path: Path) -> dict[str, object]:

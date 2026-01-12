@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import pytest
 
+from tests.contentctl.fixtures import DEFAULT_CONFIG_NAME, DEFAULT_PATH
 from contentctl.cli_parser import AdoptContext, DeployContext, parse_cli
 
 
@@ -17,8 +18,15 @@ from contentctl.cli_parser import AdoptContext, DeployContext, parse_cli
             False,
             ["docs"],
         ),
-        (["deploy", "--all-workspaces"], DeployContext, "deploy", ".", True, []),
-        (["adopt", "docs"], AdoptContext, "adopt", ".", None, None),
+        (
+            ["deploy", "--all-workspaces"],
+            DeployContext,
+            "deploy",
+            DEFAULT_PATH,
+            True,
+            [],
+        ),
+        (["adopt", "docs"], AdoptContext, "adopt", DEFAULT_PATH, None, None),
     ],
 )
 def test_parse_cli_success(
@@ -35,7 +43,7 @@ def test_parse_cli_success(
     assert isinstance(ctx, ctx_type)
     assert ctx.command == command
     assert ctx.path == path
-    assert ctx.config_path == (tmp_path / "content-hub.yaml").resolve()
+    assert ctx.config_path == (tmp_path / DEFAULT_CONFIG_NAME).resolve()
     if isinstance(ctx, DeployContext):
         assert ctx.all_workspaces is all_workspaces
         assert ctx.workspaces == workspaces

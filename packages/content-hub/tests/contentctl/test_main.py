@@ -6,6 +6,7 @@ from unittest.mock import create_autospec
 
 import pytest
 
+from tests.contentctl.fixtures import DEFAULT_PATH, make_workspace
 from contentctl.cli_parser import AdoptContext, DeployContext
 from contentctl.config import ResolvedConfig, Workspace
 import contentctl.__main__ as mainmod
@@ -111,7 +112,7 @@ def test_main_dispatches_deploy_all_workspaces(
     workspaces = deploy_call["workspaces"]
     names = [ws.name for ws in workspaces]
     assert names == ["alpha", "zeta"]
-    assert deploy_call["path"] == "."
+    assert deploy_call["path"] == DEFAULT_PATH
     assert deploy_call["dry_run"] is False
     assert deploy_call["verbose"] is True
 
@@ -141,17 +142,20 @@ def test_main_dispatches_adopt_workspace(
     assert adopt_call["verbose"] is True
 
 
+CONFIG_PATH = Path("/config.yaml")
+
+
 def _deploy_ctx(
     *,
     all_workspaces: bool = True,
     workspaces: list[str] | None = None,
-    path: str = ".",
+    path: str = DEFAULT_PATH,
     dry_run: bool = False,
     verbose: bool = False,
 ) -> DeployContext:
     return DeployContext(
         command="deploy",
-        config_path=Path("/config.yaml"),
+        config_path=CONFIG_PATH,
         all_workspaces=all_workspaces,
         workspaces=workspaces or [],
         path=path,
@@ -169,7 +173,7 @@ def _adopt_ctx(
 ) -> AdoptContext:
     return AdoptContext(
         command="adopt",
-        config_path=Path("/config.yaml"),
+        config_path=CONFIG_PATH,
         workspace=workspace,
         path=path,
         dry_run=dry_run,
@@ -179,12 +183,10 @@ def _adopt_ctx(
 
 def _resolved_config() -> ResolvedConfig:
     return ResolvedConfig(
-        origin=Workspace(name="", path=Path("/origin"), include=(), exclude=()),
+        origin=make_workspace("", "/origin"),
         workspaces={
-            "zeta": Workspace(name="zeta", path=Path("/zeta"), include=(), exclude=()),
-            "alpha": Workspace(
-                name="alpha", path=Path("/alpha"), include=(), exclude=()
-            ),
+            "zeta": make_workspace("zeta", "/zeta"),
+            "alpha": make_workspace("alpha", "/alpha"),
         },
     )
 

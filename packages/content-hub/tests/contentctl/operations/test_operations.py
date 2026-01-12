@@ -7,6 +7,7 @@ from unittest.mock import create_autospec
 
 import pytest
 
+from tests.contentctl.fixtures import DEFAULT_PATH, make_workspace
 from contentctl.config import Workspace
 from contentctl.operations import adopt as adopt_mod
 from contentctl.operations import deploy as deploy_mod
@@ -39,9 +40,9 @@ def test_run_deploy_dry_run_prints_plan(
 
     output = StringIO()
     run_deploy(
-        workspaces=[Workspace(name="docs", path=Path("/ws"), include=(), exclude=())],
-        origin=Workspace(name="", path=Path("/origin"), include=(), exclude=()),
-        path=".",
+        workspaces=[make_workspace("docs", "/ws")],
+        origin=ORIGIN,
+        path=DEFAULT_PATH,
         dry_run=True,
         verbose=False,
         output=output,
@@ -81,9 +82,9 @@ def test_run_adopt_applies_plan(
 
     output = StringIO()
     run_adopt(
-        workspace=Workspace(name="docs", path=Path("/ws"), include=(), exclude=()),
-        origin=Workspace(name="", path=Path("/origin"), include=(), exclude=()),
-        path=".",
+        workspace=make_workspace("docs", "/ws"),
+        origin=ORIGIN,
+        path=DEFAULT_PATH,
         dry_run=False,
         verbose=False,
         output=output,
@@ -120,9 +121,9 @@ def test_run_adopt_dry_run_prints_plan(
 
     output = StringIO()
     run_adopt(
-        workspace=Workspace(name="docs", path=Path("/ws"), include=(), exclude=()),
-        origin=Workspace(name="", path=Path("/origin"), include=(), exclude=()),
-        path=".",
+        workspace=make_workspace("docs", "/ws"),
+        origin=ORIGIN,
+        path=DEFAULT_PATH,
         dry_run=True,
         verbose=False,
         output=output,
@@ -162,9 +163,9 @@ def test_run_adopt_verbose_prints_plan(
 
     output = StringIO()
     run_adopt(
-        workspace=Workspace(name="docs", path=Path("/ws"), include=(), exclude=()),
-        origin=Workspace(name="", path=Path("/origin"), include=(), exclude=()),
-        path=".",
+        workspace=make_workspace("docs", "/ws"),
+        origin=ORIGIN,
+        path=DEFAULT_PATH,
         dry_run=False,
         verbose=True,
         output=output,
@@ -206,11 +207,11 @@ def test_run_deploy_verbose_prints_plan(
     output = StringIO()
     run_deploy(
         workspaces=[
-            Workspace(name="docs", path=Path("/ws"), include=(), exclude=()),
-            Workspace(name="assets", path=Path("/assets"), include=(), exclude=()),
+            make_workspace("docs", "/ws"),
+            make_workspace("assets", "/assets"),
         ],
-        origin=Workspace(name="", path=Path("/origin"), include=(), exclude=()),
-        path=".",
+        origin=ORIGIN,
+        path=DEFAULT_PATH,
         dry_run=False,
         verbose=True,
         output=output,
@@ -236,3 +237,6 @@ def _fake_plan() -> SyncPlan:
             ),
         ),
     )
+
+
+ORIGIN = Workspace(name="", path=Path("/origin"), include=(), exclude=())

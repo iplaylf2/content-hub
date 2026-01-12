@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from contentctl.plan import SyncAction, SyncError, plan_sync
-from conftest import FIXTURES_ROOT
+from tests.contentctl.fixtures import fixture_path
 
 
 @pytest.mark.parametrize(
@@ -17,8 +17,8 @@ from conftest import FIXTURES_ROOT
     ],
 )
 def test_plan_sync_rejects_invalid_paths(path: str, target_name: str) -> None:
-    source_root = _fixture_path("source_dir")
-    target_root = _fixture_path(target_name)
+    source_root = fixture_path("plan_sync", "source_dir")
+    target_root = fixture_path("plan_sync", target_name)
 
     with pytest.raises(SyncError):
         plan_sync(
@@ -49,8 +49,8 @@ def test_plan_sync_rejects_missing_source(tmp_path: Path) -> None:
 
 
 def test_plan_sync_applies_include_exclude() -> None:
-    source_root = _fixture_path("source_dir")
-    target_root = _fixture_path("target_dir")
+    source_root = fixture_path("plan_sync", "source_dir")
+    target_root = fixture_path("plan_sync", "target_dir")
 
     plan = plan_sync(
         source_root=source_root,
@@ -70,8 +70,8 @@ def test_plan_sync_applies_include_exclude() -> None:
 
 
 def test_plan_sync_file_source() -> None:
-    source_root = _fixture_path("source_single")
-    target_root = _fixture_path("target_single")
+    source_root = fixture_path("plan_sync", "source_single")
+    target_root = fixture_path("plan_sync", "target_single")
 
     plan = plan_sync(
         source_root=source_root,
@@ -89,8 +89,8 @@ def test_plan_sync_file_source() -> None:
 
 
 def test_plan_sync_reports_target_skips() -> None:
-    source_root = _fixture_path("source_dir")
-    target_root = _fixture_path("target_dir")
+    source_root = fixture_path("plan_sync", "source_dir")
+    target_root = fixture_path("plan_sync", "target_dir")
 
     plan = plan_sync(
         source_root=source_root,
@@ -113,8 +113,8 @@ def test_plan_sync_reports_target_skips() -> None:
 
 
 def test_plan_sync_marks_replace() -> None:
-    source_root = _fixture_path("source_single")
-    target_root = _fixture_path("target_single")
+    source_root = fixture_path("plan_sync", "source_single")
+    target_root = fixture_path("plan_sync", "target_single")
 
     plan = plan_sync(
         source_root=source_root,
@@ -145,8 +145,8 @@ def test_plan_sync_rejects_overlapping_paths(
 ) -> None:
     with pytest.raises(SyncError):
         plan_sync(
-            source_root=_fixture_path(source_root),
-            target_root=_fixture_path(target_root),
+            source_root=fixture_path("plan_sync", source_root),
+            target_root=fixture_path("plan_sync", target_root),
             path=path,
             source_include=(),
             source_exclude=(),
@@ -156,8 +156,8 @@ def test_plan_sync_rejects_overlapping_paths(
 
 
 def test_plan_sync_file_target_exclude_marks_skip() -> None:
-    source_root = _fixture_path("source_single")
-    target_root = _fixture_path("target_single")
+    source_root = fixture_path("plan_sync", "source_single")
+    target_root = fixture_path("plan_sync", "target_single")
     plan = plan_sync(
         source_root=source_root,
         target_root=target_root,
@@ -170,7 +170,3 @@ def test_plan_sync_file_target_exclude_marks_skip() -> None:
 
     assert len(plan.operations) == 1
     assert plan.operations[0].action is SyncAction.SKIP
-
-
-def _fixture_path(name: str) -> Path:
-    return FIXTURES_ROOT / "plan_sync" / name

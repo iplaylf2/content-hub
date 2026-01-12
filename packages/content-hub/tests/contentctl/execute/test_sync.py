@@ -5,8 +5,15 @@ from pathlib import Path
 
 import pytest
 
+from tests.contentctl.execute.fixtures import (
+    SOURCE_ROOT,
+    TARGET_ROOT,
+    make_file_plan,
+    make_plan,
+    make_sync_op,
+)
 from contentctl.execute.sync import apply_sync_plan, print_sync_plan
-from contentctl.plan.sync import SyncAction, SyncOperation, SyncPlan
+from contentctl.plan.sync import SyncAction
 
 
 def test_apply_sync_plan_copies_non_skip(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -23,47 +30,23 @@ def test_apply_sync_plan_copies_non_skip(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr("contentctl.execute.sync.shutil.copy2", fake_copy2)
     monkeypatch.setattr(Path, "mkdir", fake_mkdir)
 
-    plan = SyncPlan(
-        source_path=Path("/virtual/source"),
-        target_path=Path("/virtual/target"),
-        operations=(
-            SyncOperation(
-                source=Path("/virtual/source/guide.txt"),
-                destination=Path("/virtual/target/guide.txt"),
-                action=SyncAction.COPY,
-            ),
-            SyncOperation(
-                source=Path("/virtual/source/drafts.txt"),
-                destination=Path("/virtual/target/drafts.txt"),
-                action=SyncAction.SKIP,
-            ),
-        ),
+    plan = make_plan(
+        make_sync_op("guide.txt", SyncAction.COPY),
+        make_sync_op("drafts.txt", SyncAction.SKIP),
     )
 
     apply_sync_plan(plan)
 
     assert copy_calls == [
-        (Path("/virtual/source/guide.txt"), Path("/virtual/target/guide.txt")),
+        (SOURCE_ROOT / "guide.txt", TARGET_ROOT / "guide.txt"),
     ]
     assert mkdir_calls
 
 
 def test_print_sync_plan_formats_lines() -> None:
-    plan = SyncPlan(
-        source_path=Path("/virtual/source"),
-        target_path=Path("/virtual/target"),
-        operations=(
-            SyncOperation(
-                source=Path("/virtual/source/guide.txt"),
-                destination=Path("/virtual/target/guide.txt"),
-                action=SyncAction.COPY,
-            ),
-            SyncOperation(
-                source=Path("/virtual/source/drafts.txt"),
-                destination=Path("/virtual/target/drafts.txt"),
-                action=SyncAction.SKIP,
-            ),
-        ),
+    plan = make_plan(
+        make_sync_op("guide.txt", SyncAction.COPY),
+        make_sync_op("drafts.txt", SyncAction.SKIP),
     )
 
     output = StringIO()
@@ -86,11 +69,7 @@ def test_apply_sync_plan_no_ops_does_not_create_dirs(
 
     monkeypatch.setattr(Path, "mkdir", fake_mkdir)
 
-    plan = SyncPlan(
-        source_path=Path("/virtual/source/note.txt"),
-        target_path=Path("/virtual/target/note.txt"),
-        operations=(),
-    )
+    plan = make_file_plan("note.txt")
 
     apply_sync_plan(plan)
 
@@ -113,21 +92,9 @@ def test_apply_sync_plan_all_skip_does_not_create_dirs(
     monkeypatch.setattr("contentctl.execute.sync.shutil.copy2", fake_copy2)
     monkeypatch.setattr(Path, "mkdir", fake_mkdir)
 
-    plan = SyncPlan(
-        source_path=Path("/virtual/source"),
-        target_path=Path("/virtual/target"),
-        operations=(
-            SyncOperation(
-                source=Path("/virtual/source/drafts.txt"),
-                destination=Path("/virtual/target/drafts.txt"),
-                action=SyncAction.SKIP,
-            ),
-            SyncOperation(
-                source=Path("/virtual/source/notes.txt"),
-                destination=Path("/virtual/target/notes.txt"),
-                action=SyncAction.SKIP,
-            ),
-        ),
+    plan = make_plan(
+        make_sync_op("drafts.txt", SyncAction.SKIP),
+        make_sync_op("notes.txt", SyncAction.SKIP),
     )
 
     apply_sync_plan(plan)
