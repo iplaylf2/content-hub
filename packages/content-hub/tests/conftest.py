@@ -3,11 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 
-
-TESTS_ROOT = Path(__file__).resolve().parent
-PACKAGE_ROOT = TESTS_ROOT.parent
-SRC_ROOT = PACKAGE_ROOT / "src"
-FIXTURES_ROOT = TESTS_ROOT / "_fixtures"
+from tests.paths import PACKAGE_ROOT, SRC_ROOT, TESTS_ROOT
 
 
 def _prepend_sys_path(path: Path) -> None:

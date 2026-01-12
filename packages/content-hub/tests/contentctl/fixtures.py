@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from contentctl.config import Workspace
-from conftest import FIXTURES_ROOT
+from tests.paths import FIXTURES_ROOT
 
 DEFAULT_CONFIG_NAME = "content-hub.yaml"
 DEFAULT_PATH = "."
