@@ -9,8 +9,15 @@ from contentctl.plan.sync import SyncAction, SyncOperation, SyncPlan
 
 
 def apply_sync_plan(plan: SyncPlan) -> None:
+    effective_ops = tuple(
+        operation
+        for operation in plan.operations
+        if operation.action is not SyncAction.SKIP
+    )
+    if not effective_ops:
+        return
     _prepare_target(plan)
-    _apply_copy_operations(plan.operations)
+    _apply_copy_operations(effective_ops)
 
 
 def print_sync_plan(plan: SyncPlan, output: TextIO) -> None:
