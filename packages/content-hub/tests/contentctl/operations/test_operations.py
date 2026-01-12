@@ -95,17 +95,11 @@ def _fake_plan() -> SyncPlan:
     return SyncPlan(
         source_path=Path("/virtual/source"),
         target_path=Path("/virtual/target"),
-        source_is_dir=True,
         operations=(
             SyncOperation(
                 source=Path("/virtual/source/a.txt"),
                 destination=Path("/virtual/target/a.txt"),
                 action=SyncAction.COPY,
-            ),
-            SyncOperation(
-                source=Path("/virtual/source/b.txt"),
-                destination=Path("/virtual/target/b.txt"),
-                action=SyncAction.SKIP,
             ),
         ),
     )

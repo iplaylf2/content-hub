@@ -20,8 +20,6 @@ def plan_sync(
 ) -> SyncPlan:
     source_path = _resolve_subpath(source_root, path)
     target_path = _resolve_subpath(target_root, path)
-    source_is_dir = source_path.is_dir()
-
     if _paths_overlap(source_path, target_path):
         raise SyncError(
             f"Source and target paths overlap: {source_path} <-> {target_path}"
@@ -41,7 +39,6 @@ def plan_sync(
     return SyncPlan(
         source_path=source_path,
         target_path=target_path,
-        source_is_dir=source_is_dir,
         operations=tuple(operations),
     )
 
@@ -54,7 +51,6 @@ class SyncError(RuntimeError):
 class SyncPlan:
     source_path: Path
     target_path: Path
-    source_is_dir: bool
     operations: tuple["SyncOperation", ...]
 
 

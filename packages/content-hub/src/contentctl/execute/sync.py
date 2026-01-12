@@ -31,8 +31,6 @@ def print_sync_plan(plan: SyncPlan, output: TextIO) -> None:
 def _prepare_target(plan: SyncPlan) -> None:
     target_path = plan.target_path
     target_path.parent.mkdir(parents=True, exist_ok=True)
-    if plan.source_is_dir:
-        target_path.mkdir(parents=True, exist_ok=True)
 
 
 def _apply_copy_operations(ops: Iterable[SyncOperation]) -> None:
