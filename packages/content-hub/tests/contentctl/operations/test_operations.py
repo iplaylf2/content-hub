@@ -46,7 +46,7 @@ def test_run_deploy_dry_run_prints_plan(
 
     text = output.getvalue()
     assert "deploy docs:" in text
-    assert "files planned" in text
+    assert f"{len(plan.operations)} files planned" in text
     assert printed == [plan]
 
 
@@ -86,7 +86,7 @@ def test_run_deploy_verbose_applies_plan(
 
     text = output.getvalue()
     assert "deploy docs:" in text
-    assert "files copied" in text
+    assert f"{len(plan.operations)} files copied" in text
     assert applied == [plan]
     assert printed == [plan]
 
@@ -126,7 +126,7 @@ def test_run_adopt_dry_run_prints_plan(
 
     text = output.getvalue()
     assert "adopt docs:" in text
-    assert "files planned" in text
+    assert f"{len(plan.operations)} files planned" in text
     assert printed == [plan]
 
 
