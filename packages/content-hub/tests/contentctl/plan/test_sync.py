@@ -130,5 +130,47 @@ def test_plan_sync_marks_replace() -> None:
     assert plan.operations[0].action is SyncAction.REPLACE
 
 
+@pytest.mark.parametrize(
+    ("source_root", "target_root", "path"),
+    [
+        ("source_dir", "source_dir", "."),
+        ("source_dir", "source_dir/sub", "."),
+        ("source_dir/sub", "source_dir", "."),
+    ],
+)
+def test_plan_sync_rejects_overlapping_paths(
+    source_root: str,
+    target_root: str,
+    path: str,
+) -> None:
+    with pytest.raises(SyncError):
+        plan_sync(
+            source_root=_fixture_path(source_root),
+            target_root=_fixture_path(target_root),
+            path=path,
+            source_include=(),
+            source_exclude=(),
+            target_include=(),
+            target_exclude=(),
+        )
+
+
+def test_plan_sync_file_target_exclude_marks_skip() -> None:
+    source_root = _fixture_path("source_single")
+    target_root = _fixture_path("target_single")
+    plan = plan_sync(
+        source_root=source_root,
+        target_root=target_root,
+        path="note.txt",
+        source_include=(),
+        source_exclude=(),
+        target_include=(),
+        target_exclude=("*.txt",),
+    )
+
+    assert len(plan.operations) == 1
+    assert plan.operations[0].action is SyncAction.SKIP
+
+
 def _fixture_path(name: str) -> Path:
     return FIXTURES_ROOT / "plan_sync" / name

@@ -5,7 +5,7 @@ from typing import TypedDict, cast
 
 import pytest
 
-from contentctl.cli_parser import DeployContext
+from contentctl.cli_parser import AdoptContext, DeployContext
 from contentctl.config import ResolvedConfig, Workspace
 import contentctl.__main__ as mainmod
 
@@ -121,6 +121,46 @@ def test_main_dispatches_deploy_all_workspaces(
     assert deploy_call["verbose"] is True
 
 
+def test_main_dispatches_adopt_workspace(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ctx: AdoptContext = _adopt_ctx(dry_run=True, verbose=True)
+
+    def fake_parse_cli(_argv: list[str], _cwd: Path) -> AdoptContext:
+        return ctx
+
+    def fake_load_config(_path: Path) -> dict[str, object]:
+        return {}
+
+    def fake_resolve_config(_cfg: dict[str, object], _path: Path) -> ResolvedConfig:
+        return _resolved_config()
+
+    class _AdoptCall(TypedDict):
+        workspace: Workspace
+        path: str
+        dry_run: bool
+        verbose: bool
+
+    called: list[_AdoptCall] = []
+
+    def fake_run_adopt(**kwargs: object) -> None:
+        called.append(cast(_AdoptCall, kwargs))
+
+    monkeypatch.setattr(mainmod, "parse_cli", fake_parse_cli)
+    monkeypatch.setattr(mainmod, "load_config", fake_load_config)
+    monkeypatch.setattr(mainmod, "resolve_config", fake_resolve_config)
+    monkeypatch.setattr(mainmod, "run_adopt", fake_run_adopt)
+
+    mainmod.main()
+
+    assert len(called) == 1
+    adopt_call = called[0]
+    assert adopt_call["workspace"].name == "alpha"
+    assert adopt_call["path"] == "docs"
+    assert adopt_call["dry_run"] is True
+    assert adopt_call["verbose"] is True
+
+
 def _deploy_ctx(
     *,
     all_workspaces: bool = True,
@@ -134,6 +174,23 @@ def _deploy_ctx(
         config_path=Path("/config.yaml"),
         all_workspaces=all_workspaces,
         workspaces=workspaces or [],
+        path=path,
+        dry_run=dry_run,
+        verbose=verbose,
+    )
+
+
+def _adopt_ctx(
+    *,
+    workspace: str = "alpha",
+    path: str = "docs",
+    dry_run: bool = False,
+    verbose: bool = False,
+) -> AdoptContext:
+    return AdoptContext(
+        command="adopt",
+        config_path=Path("/config.yaml"),
+        workspace=workspace,
         path=path,
         dry_run=dry_run,
         verbose=verbose,
