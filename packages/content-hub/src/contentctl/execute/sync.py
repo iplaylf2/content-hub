@@ -2,41 +2,75 @@
 
 from __future__ import annotations
 
+import asyncio
 import shutil
-from typing import Iterable, TextIO
+from collections.abc import AsyncIterable, AsyncIterator
+from pathlib import Path
+from typing import TextIO
 
-from contentctl.plan.sync import SyncAction, SyncOperation, SyncPlan
-
-
-def apply_sync_plan(plan: SyncPlan) -> None:
-    effective_ops = tuple(
-        operation
-        for operation in plan.operations
-        if operation.action is not SyncAction.SKIP
-    )
-    if not effective_ops:
-        return
-    _prepare_destination(plan)
-    _apply_copy_operations(effective_ops)
+from contentctl.concurrent import map_concurrent
+from contentctl.plan.sync import SyncAction, SyncOperation
 
 
-def print_sync_plan(plan: SyncPlan, output: TextIO) -> None:
-    for operation in plan.operations:
-        print(
-            f"{operation.action.value:<7} {operation.source} -> {operation.destination}",
-            file=output,
+async def print_sync_plan(
+    operations: AsyncIterable[SyncOperation],
+    source_root: Path,
+    destination_root: Path,
+    output: TextIO,
+) -> AsyncIterator[SyncOperation]:
+    async for operation in operations:
+        _print_operation(
+            operation,
+            output,
+            source_root,
+            destination_root,
         )
+        yield operation
 
 
-def _prepare_destination(plan: SyncPlan) -> None:
-    destination_path = plan.destination_path
-    destination_path.parent.mkdir(parents=True, exist_ok=True)
-
-
-def _apply_copy_operations(ops: Iterable[SyncOperation]) -> None:
-    for operation in ops:
+async def apply_sync_plan(
+    operations: AsyncIterable[SyncOperation],
+    source_root: Path,
+    destination_root: Path,
+    semaphore: asyncio.Semaphore,
+) -> AsyncIterator[SyncOperation]:
+    async def apply(operation: SyncOperation) -> SyncOperation:
         if operation.action is SyncAction.SKIP:
-            continue
-        destination = operation.destination
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(operation.source, destination)
+            return operation
+        await asyncio.to_thread(
+            _copy_operation,
+            operation,
+            source_root,
+            destination_root,
+        )
+        return operation
+
+    async for operation in map_concurrent(operations, apply, semaphore):
+        yield operation
+
+
+def _copy_operation(
+    operation: SyncOperation,
+    source_root: Path,
+    destination_root: Path,
+) -> None:
+    if operation.action is SyncAction.SKIP:
+        return
+    source = source_root / operation.relative
+    destination = destination_root / operation.relative
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, destination)
+
+
+def _print_operation(
+    operation: SyncOperation,
+    output: TextIO,
+    source_root: Path,
+    destination_root: Path,
+) -> None:
+    source = source_root / operation.relative
+    destination = destination_root / operation.relative
+    print(
+        f"{operation.action.value:<7} {source} -> {destination}",
+        file=output,
+    )

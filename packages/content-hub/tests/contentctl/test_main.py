@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import TypedDict, cast
-from unittest.mock import create_autospec
+from unittest.mock import AsyncMock, create_autospec
 
 import pytest
 
@@ -58,7 +58,7 @@ def test_main_exits_on_sync_error(
 
     _patch_main_context(monkeypatch, ctx=ctx, resolved=_resolved_config())
 
-    def raise_sync_error(_ctx: object, _resolved: object) -> None:
+    async def raise_sync_error(_ctx: object, _resolved: object) -> None:
         raise mainmod.SyncError("sync failed")
 
     monkeypatch.setattr(mainmod, "_dispatch", raise_sync_error)
@@ -101,7 +101,7 @@ def test_main_dispatches_deploy_all_workspaces(
         dry_run: bool
         verbose: bool
 
-    run_deploy_mock = create_autospec(mainmod.run_deploy)
+    run_deploy_mock = AsyncMock(spec=mainmod.run_deploy)
     monkeypatch.setattr(mainmod, "run_deploy", run_deploy_mock)
     _patch_main_context(monkeypatch, ctx=ctx, resolved=_resolved_config())
 
@@ -134,7 +134,7 @@ def test_main_dispatches_deploy_selected_workspaces(
         mainmod.select_all_workspaces,
         side_effect=AssertionError("select_all_workspaces should not run"),
     )
-    run_deploy_mock = create_autospec(mainmod.run_deploy)
+    run_deploy_mock = AsyncMock(spec=mainmod.run_deploy)
     monkeypatch.setattr(mainmod, "select_workspaces", select_workspaces_mock)
     monkeypatch.setattr(mainmod, "select_all_workspaces", select_all_workspaces_mock)
     monkeypatch.setattr(mainmod, "run_deploy", run_deploy_mock)
@@ -161,7 +161,7 @@ def test_main_dispatches_adopt_workspace(
         dry_run: bool
         verbose: bool
 
-    run_adopt_mock = create_autospec(mainmod.run_adopt)
+    run_adopt_mock = AsyncMock(spec=mainmod.run_adopt)
     monkeypatch.setattr(mainmod, "run_adopt", run_adopt_mock)
     _patch_main_context(monkeypatch, ctx=ctx, resolved=_resolved_config())
 
@@ -179,7 +179,6 @@ CONFIG_PATH = Path("/config.yaml")
 
 
 def _deploy_ctx(
-    *,
     all_workspaces: bool = True,
     workspaces: list[str] | None = None,
     path: str = DEFAULT_PATH,
@@ -198,7 +197,6 @@ def _deploy_ctx(
 
 
 def _adopt_ctx(
-    *,
     workspace: str = "alpha",
     path: str = "docs",
     dry_run: bool = False,
@@ -226,7 +224,6 @@ def _resolved_config() -> ResolvedConfig:
 
 def _patch_main_context(
     monkeypatch: pytest.MonkeyPatch,
-    *,
     ctx: AdoptContext | DeployContext,
     resolved: ResolvedConfig,
 ) -> None:

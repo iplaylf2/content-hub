@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from pathlib import Path
 
-from contentctl.plan.sync import SyncAction, SyncOperation, SyncPlan
+from contentctl.plan.sync import SyncAction, SyncOperation
 
 SOURCE_ROOT = Path("/virtual/source")
 DESTINATION_ROOT = Path("/virtual/destination")
@@ -10,23 +11,17 @@ DESTINATION_ROOT = Path("/virtual/destination")
 
 def make_sync_op(filename: str, action: SyncAction) -> SyncOperation:
     return SyncOperation(
-        source=SOURCE_ROOT / filename,
-        destination=DESTINATION_ROOT / filename,
+        relative=Path(filename),
         action=action,
     )
 
 
-def make_plan(*operations: SyncOperation) -> SyncPlan:
-    return SyncPlan(
-        source_path=SOURCE_ROOT,
-        destination_path=DESTINATION_ROOT,
-        operations=operations,
-    )
+def make_stream(*operations: SyncOperation) -> AsyncIterator[SyncOperation]:
+    return _iter_operations(operations)
 
 
-def make_file_plan(filename: str) -> SyncPlan:
-    return SyncPlan(
-        source_path=SOURCE_ROOT / filename,
-        destination_path=DESTINATION_ROOT / filename,
-        operations=(),
-    )
+async def _iter_operations(
+    operations: tuple[SyncOperation, ...],
+) -> AsyncIterator[SyncOperation]:
+    for operation in operations:
+        yield operation

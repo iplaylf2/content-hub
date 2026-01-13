@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import asyncio
 from pathlib import Path
 
 from .cli_parser import AdoptContext, DeployContext, parse_cli
@@ -28,20 +29,23 @@ def main() -> None:
         sys.exit(2)
 
     try:
-        _dispatch(ctx, resolved)
+        asyncio.run(_dispatch(ctx, resolved))
     except (ConfigError, SyncError) as exc:
         print(str(exc), file=sys.stderr)
         sys.exit(1)
 
 
-def _dispatch(ctx: AdoptContext | DeployContext, resolved: ResolvedConfig) -> None:
+async def _dispatch(
+    ctx: AdoptContext | DeployContext,
+    resolved: ResolvedConfig,
+) -> None:
     match ctx:
         case DeployContext():
             if ctx.all_workspaces:
                 workspaces = select_all_workspaces(resolved)
             else:
                 workspaces = select_workspaces(resolved, ctx.workspaces)
-            run_deploy(
+            await run_deploy(
                 workspaces=workspaces,
                 origin=resolved.origin,
                 path=ctx.path,
@@ -51,7 +55,7 @@ def _dispatch(ctx: AdoptContext | DeployContext, resolved: ResolvedConfig) -> No
             )
         case AdoptContext():
             workspaces = select_workspaces(resolved, [ctx.workspace])
-            run_adopt(
+            await run_adopt(
                 workspace=workspaces[0],
                 origin=resolved.origin,
                 path=ctx.path,

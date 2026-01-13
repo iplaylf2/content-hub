@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import TextIO
 
 from contentctl.config import Workspace
+from contentctl.concurrent import count_stream, default_concurrency
 from contentctl.execute.sync import apply_sync_plan, print_sync_plan
-from contentctl.plan.sync import plan_sync
+from contentctl.plan.sync import SyncAction, plan_sync, resolve_sync_paths
 
 
-def run_adopt(
+async def run_adopt(
     workspace: Workspace,
     origin: Workspace,
     path: str,
@@ -17,31 +19,68 @@ def run_adopt(
     verbose: bool,
     output: TextIO,
 ) -> None:
-    plan = plan_sync(
+    base = default_concurrency()
+    io_semaphore = asyncio.Semaphore(base)
+
+    source_path, destination_path = resolve_sync_paths(
         source_root=workspace.path,
         destination_root=origin.path,
         path=path,
+    )
+
+    stream = plan_sync(
+        source_path=source_path,
+        destination_path=destination_path,
         source_include=workspace.include,
         source_exclude=workspace.exclude,
         destination_include=origin.include,
         destination_exclude=origin.exclude,
+        semaphore=io_semaphore,
     )
+
+    source_is_file = source_path.is_file()
+    source_root = source_path.parent if source_is_file else source_path
+    destination_root = destination_path.parent if source_is_file else destination_path
+
     if verbose or dry_run:
         print(
-            f"adopt {workspace.name}: {plan.source_path} -> {plan.destination_path}",
+            f"adopt {workspace.name}: {source_path} -> {destination_path}",
             file=output,
         )
+
     if dry_run:
-        print_sync_plan(plan, output)
+        stream = print_sync_plan(
+            stream,
+            source_root=source_root,
+            destination_root=destination_root,
+            output=output,
+        )
+        total = await count_stream(stream)
         print(
-            f"adopt {workspace.name}: {len(plan.operations)} files planned",
+            f"adopt {workspace.name}: {total} files planned",
             file=output,
         )
         return
-    apply_sync_plan(plan)
+
     if verbose:
-        print_sync_plan(plan, output)
+        stream = print_sync_plan(
+            stream,
+            source_root=source_root,
+            destination_root=destination_root,
+            output=output,
+        )
+
+    stream = apply_sync_plan(
+        stream,
+        source_root=source_root,
+        destination_root=destination_root,
+        semaphore=io_semaphore,
+    )
+    total = await count_stream(
+        stream,
+        predicate=lambda operation: operation.action is not SyncAction.SKIP,
+    )
     print(
-        f"adopt {workspace.name}: {len(plan.operations)} files copied",
+        f"adopt {workspace.name}: {total} files copied",
         file=output,
     )

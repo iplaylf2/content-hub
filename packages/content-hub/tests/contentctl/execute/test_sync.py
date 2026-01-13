@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from io import StringIO
 from pathlib import Path
 
@@ -8,11 +9,13 @@ import pytest
 from tests.contentctl.execute.fixtures import (
     SOURCE_ROOT,
     DESTINATION_ROOT,
-    make_plan,
+    make_stream,
     make_sync_op,
 )
 from contentctl.execute.sync import apply_sync_plan, print_sync_plan
-from contentctl.plan.sync import SyncAction
+from collections.abc import AsyncIterator
+
+from contentctl.plan.sync import SyncAction, SyncOperation
 
 
 def test_apply_sync_plan_copies_non_skip(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -29,12 +32,18 @@ def test_apply_sync_plan_copies_non_skip(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr("contentctl.execute.sync.shutil.copy2", fake_copy2)
     monkeypatch.setattr(Path, "mkdir", fake_mkdir)
 
-    plan = make_plan(
+    stream = make_stream(
         make_sync_op("guide.txt", SyncAction.COPY),
         make_sync_op("drafts.txt", SyncAction.SKIP),
     )
 
-    apply_sync_plan(plan)
+    observed = apply_sync_plan(
+        stream,
+        source_root=SOURCE_ROOT,
+        destination_root=DESTINATION_ROOT,
+        semaphore=asyncio.Semaphore(2),
+    )
+    _drain_stream(observed)
 
     assert copy_calls == [
         (SOURCE_ROOT / "guide.txt", DESTINATION_ROOT / "guide.txt"),
@@ -43,13 +52,19 @@ def test_apply_sync_plan_copies_non_skip(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_print_sync_plan_formats_lines() -> None:
-    plan = make_plan(
+    stream = make_stream(
         make_sync_op("guide.txt", SyncAction.COPY),
         make_sync_op("drafts.txt", SyncAction.SKIP),
     )
 
     output = StringIO()
-    print_sync_plan(plan, output)
+    observed = print_sync_plan(
+        stream,
+        source_root=SOURCE_ROOT,
+        destination_root=DESTINATION_ROOT,
+        output=output,
+    )
+    _drain_stream(observed)
 
     lines = output.getvalue().splitlines()
     assert lines == [
@@ -74,12 +89,26 @@ def test_apply_sync_plan_all_skip_does_not_create_dirs(
     monkeypatch.setattr("contentctl.execute.sync.shutil.copy2", fake_copy2)
     monkeypatch.setattr(Path, "mkdir", fake_mkdir)
 
-    plan = make_plan(
+    stream = make_stream(
         make_sync_op("drafts.txt", SyncAction.SKIP),
         make_sync_op("notes.txt", SyncAction.SKIP),
     )
 
-    apply_sync_plan(plan)
+    observed = apply_sync_plan(
+        stream,
+        source_root=SOURCE_ROOT,
+        destination_root=DESTINATION_ROOT,
+        semaphore=asyncio.Semaphore(2),
+    )
+    _drain_stream(observed)
 
     assert copy_calls == []
     assert mkdir_calls == []
+
+
+def _drain_stream(stream: AsyncIterator[SyncOperation]) -> None:
+    async def consume() -> None:
+        async for _ in stream:
+            pass
+
+    asyncio.run(consume())
