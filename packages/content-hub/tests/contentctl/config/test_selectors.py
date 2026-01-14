@@ -12,6 +12,9 @@ from tests.contentctl.fixtures import make_workspace
     ("selection_order", "expected_order"),
     [
         (["zeta", "alpha"], ["zeta", "alpha"]),
+        (["alpha", "zeta"], ["alpha", "zeta"]),
+        (["alpha"], ["alpha"]),
+        (["zeta"], ["zeta"]),
     ],
 )
 def test_select_workspaces_preserves_order(

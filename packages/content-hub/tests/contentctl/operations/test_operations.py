@@ -19,6 +19,9 @@ from contentctl.plan.sync import SyncAction, SyncOperation
     ("dry_run", "verbose"),
     [
         (True, True),
+        (True, False),
+        (False, True),
+        (False, False),
     ],
 )
 def test_run_adopt_applies_plan(

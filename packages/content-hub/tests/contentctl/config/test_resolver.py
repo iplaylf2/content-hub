@@ -41,41 +41,59 @@ def test_resolve_config_origin_patterns(
     assert resolved.origin.exclude == expected_origin_exclude
 
 
-def test_resolve_config_workspace_patterns_defaults() -> None:
-    config_path = fixture_path("resolver_defaults.yaml")
+@pytest.mark.parametrize(
+    ("fixture_name", "workspace_name", "expected_include", "expected_exclude"),
+    [
+        (
+            "resolver_defaults.yaml",
+            "docs",
+            ("src/**", "docs/**", "api/**"),
+            ("build/**", "drafts/**"),
+        ),
+        (
+            "resolver_defaults.yaml",
+            "assets",
+            ("src/**", "docs/**"),
+            ("build/**",),
+        ),
+        (
+            "resolver_patterns.yaml",
+            "site",
+            ("docs/**", "assets/**", "site/**"),
+            ("build/**", "site/tmp/**"),
+        ),
+        (
+            "resolver_patterns.yaml",
+            "assets",
+            ("docs/**", "assets/**"),
+            ("build/**",),
+        ),
+    ],
+)
+def test_resolve_config_workspace_patterns(
+    fixture_name: str,
+    workspace_name: str,
+    expected_include: tuple[str, ...],
+    expected_exclude: tuple[str, ...],
+) -> None:
+    config_path = fixture_path(fixture_name)
     config = _load_fixture(config_path)
     base_dir = config_path.parent
 
     resolved = resolve_config(config, config_path)
 
-    docs = resolved.workspaces["docs"]
-    assert docs.path == (base_dir / "docs").resolve()
-    assert docs.include == ("src/**", "docs/**", "api/**")
-    assert docs.exclude == ("build/**", "drafts/**")
-
-    assets = resolved.workspaces["assets"]
-    assert assets.path == (base_dir / "assets").resolve()
-    assert assets.include == ("src/**", "docs/**")
-    assert assets.exclude == ("build/**",)
+    workspace = resolved.workspaces[workspace_name]
+    assert workspace.path == (base_dir / workspace_name).resolve()
+    assert workspace.include == expected_include
+    assert workspace.exclude == expected_exclude
 
 
-def test_resolve_config_workspace_patterns_normalized() -> None:
-    config_path = fixture_path("resolver_patterns.yaml")
-    config = _load_fixture(config_path)
-
-    resolved = resolve_config(config, config_path)
-
-    site = resolved.workspaces["site"]
-    assert site.include == ("docs/**", "assets/**", "site/**")
-    assert site.exclude == ("build/**", "site/tmp/**")
-
-    assets = resolved.workspaces["assets"]
-    assert assets.include == ("docs/**", "assets/**")
-    assert assets.exclude == ("build/**",)
-
-
-def test_select_all_workspaces_sorted() -> None:
-    config_path = fixture_path("resolver_sort.yaml")
+@pytest.mark.parametrize(
+    "fixture_name",
+    ["resolver_sort.yaml"],
+)
+def test_select_all_workspaces_sorted(fixture_name: str) -> None:
+    config_path = fixture_path(fixture_name)
     config = _load_fixture(config_path)
 
     resolved = resolve_config(config, config_path)

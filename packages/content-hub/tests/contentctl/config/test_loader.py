@@ -28,8 +28,12 @@ def _check_env_nested_config(config: dict[str, Any], root: str) -> bool:
     )
 
 
-def test_load_config_valid() -> None:
-    config_path = fixture_path("config_valid.yaml")
+@pytest.mark.parametrize(
+    "fixture_name",
+    ["config_valid.yaml"],
+)
+def test_load_config_valid(fixture_name: str) -> None:
+    config_path = fixture_path(fixture_name)
 
     config = load_config(config_path)
 
@@ -71,8 +75,12 @@ def test_load_config_env_substitution(
     assert expected_checks(config, root_value)
 
 
-def test_load_config_missing_file(tmp_path: Path) -> None:
-    config_path = tmp_path / "missing.yaml"
+@pytest.mark.parametrize(
+    "filename",
+    ["missing.yaml"],
+)
+def test_load_config_rejects_missing_file(tmp_path: Path, filename: str) -> None:
+    config_path = tmp_path / filename
 
     with pytest.raises(ConfigError):
         load_config(config_path)

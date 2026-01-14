@@ -109,7 +109,7 @@ def test_main_exits_on_dispatch_config_error(
 
 @pytest.mark.parametrize(
     "verbose",
-    [True],
+    [True, False],
 )
 def test_main_dispatches_deploy_all_workspaces(
     monkeypatch: pytest.MonkeyPatch,
@@ -160,10 +160,21 @@ def test_main_dispatches_deploy_selected_workspaces(
     assert run_deploy_mock.call_count == 1
 
 
+@pytest.mark.parametrize(
+    ("dry_run", "verbose"),
+    [
+        (True, True),
+        (True, False),
+        (False, True),
+        (False, False),
+    ],
+)
 def test_main_dispatches_adopt_workspace(
     monkeypatch: pytest.MonkeyPatch,
+    dry_run: bool,
+    verbose: bool,
 ) -> None:
-    ctx: AdoptContext = _adopt_ctx(dry_run=True, verbose=True)
+    ctx: AdoptContext = _adopt_ctx(dry_run=dry_run, verbose=verbose)
 
     run_adopt_mock = AsyncMock(spec=mainmod.run_adopt)
     monkeypatch.setattr(mainmod, "run_adopt", run_adopt_mock)
