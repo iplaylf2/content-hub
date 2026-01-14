@@ -108,7 +108,7 @@ def test_run_adopt_applies_plan(
         (False, True),
     ],
 )
-def test_run_adopt_prints_plan_when_requested(
+def test_run_adopt_passes_flags_correctly(
     monkeypatch: pytest.MonkeyPatch,
     dry_run: bool,
     verbose: bool,

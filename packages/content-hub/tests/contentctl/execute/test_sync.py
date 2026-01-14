@@ -73,7 +73,7 @@ def test_print_sync_plan_formats_lines() -> None:
     ]
 
 
-def test_apply_sync_plan_all_skip_does_not_create_dirs(
+def test_apply_sync_plan_all_skip_no_filesystem_changes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     copy_calls: list[tuple[Path, Path]] = []

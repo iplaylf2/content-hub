@@ -167,12 +167,12 @@ def test_resolve_sync_paths_rejects_overlapping_paths(
 
 
 def test_plan_sync_file_destination_exclude_marks_skip() -> None:
-    source_root = fixture_path("plan_sync", "source_single")
-    destination_root = fixture_path("plan_sync", "destination_single")
+    source_root = fixture_path("plan_sync", "source_dir")
+    destination_root = fixture_path("plan_sync", "destination_dir")
     source_path, destination_path = resolve_sync_paths(
         source_root=source_root,
         destination_root=destination_root,
-        path="note.txt",
+        path=".",
     )
     operations = plan_sync(
         source_path=source_path,
@@ -180,13 +180,15 @@ def test_plan_sync_file_destination_exclude_marks_skip() -> None:
         source_include=(),
         source_exclude=(),
         destination_include=(),
-        destination_exclude=("*.txt",),
+        destination_exclude=("*.txt", "**/*.txt"),
         **_plan_semaphores(),
     )
 
     collected = _collect_operations(operations)
-    assert len(collected) == 1
-    assert collected[0].action is SyncAction.SKIP
+    actions = {str(op.relative): op.action for op in collected}
+    assert actions["guide.txt"] is SyncAction.SKIP
+    assert actions["sub/chapter.txt"] is SyncAction.SKIP
+    assert actions["readme.md"] is SyncAction.COPY
 
 
 def _plan_semaphores() -> dict[str, asyncio.Semaphore]:
