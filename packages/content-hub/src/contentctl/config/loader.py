@@ -61,6 +61,23 @@ def _validate_schema(config: dict[str, Any]) -> None:
     raise ConfigError(f"Config schema validation failed:\n{details}")
 
 
+def _render_env_vars(value: Any) -> Any:
+    match value:
+        case str():
+            return Template(value).substitute(_EnvVars(os.environ))
+        case list():
+            value_list = cast(list[Any], value)
+            return [_render_env_vars(item) for item in value_list]
+        case dict():
+            rendered: dict[str, Any] = {}
+            value_dict = cast(dict[str, Any], value)
+            for key, item in value_dict.items():
+                rendered[key] = _render_env_vars(item)
+            return rendered
+        case _:
+            return value
+
+
 class _Validator(Protocol):
     def iter_errors(self, instance: Any) -> Iterable[ValidationError]: ...
 
@@ -78,23 +95,6 @@ def _format_error_path(error: ValidationError) -> str:
                     segments.append(".")
                 segments.append(str(segment))
     return "".join(segments)
-
-
-def _render_env_vars(value: Any) -> Any:
-    match value:
-        case str():
-            return Template(value).substitute(_EnvVars(os.environ))
-        case list():
-            value_list = cast(list[Any], value)
-            return [_render_env_vars(item) for item in value_list]
-        case dict():
-            rendered: dict[str, Any] = {}
-            value_dict = cast(dict[str, Any], value)
-            for key, item in value_dict.items():
-                rendered[key] = _render_env_vars(item)
-            return rendered
-        case _:
-            return value
 
 
 class _EnvVars(UserDict[str, str]):

@@ -78,10 +78,6 @@ def _resolve_subpath(base: Path, subpath: str) -> Path:
     return resolved
 
 
-def _paths_overlap(path_a: Path, path_b: Path) -> bool:
-    return path_a == path_b or path_a in path_b.parents or path_b in path_a.parents
-
-
 def _validate_sync_paths(source_path: Path, destination_path: Path) -> None:
     if _paths_overlap(source_path, destination_path):
         raise SyncError(
@@ -142,6 +138,10 @@ async def _determine_actions(
         yield operation
 
 
+def _paths_overlap(path_a: Path, path_b: Path) -> bool:
+    return path_a == path_b or path_a in path_b.parents or path_b in path_a.parents
+
+
 async def _scan_source_files(
     source_path: Path,
     prune_exclude: tuple[str, ...],
@@ -183,27 +183,6 @@ def _is_selected(
     return True
 
 
-def _matches_pattern(rel_path: Path, pattern: str) -> bool:
-    matcher = _compile_glob(pattern)
-    return bool(matcher.match(rel_path.as_posix()))
-
-
-@lru_cache(maxsize=256)
-def _compile_glob(pattern: str) -> re.Pattern[str]:
-    return re.compile(
-        glob.translate(
-            pattern,
-            recursive=True,
-            include_hidden=True,
-            seps=("/",),
-        )
-    )
-
-
-def _has_glob_magic(pattern: str) -> bool:
-    return any(char in pattern for char in "*?[")
-
-
 def _prune_exclude_patterns(exclude: tuple[str, ...]) -> tuple[str, ...]:
     if not exclude:
         return ()
@@ -233,6 +212,15 @@ def _should_prune_dir(
     return False
 
 
+def _matches_pattern(rel_path: Path, pattern: str) -> bool:
+    matcher = _compile_glob(pattern)
+    return bool(matcher.match(rel_path.as_posix()))
+
+
+def _has_glob_magic(pattern: str) -> bool:
+    return any(char in pattern for char in "*?[")
+
+
 def _list_directory_entries(path: Path) -> tuple[list[Path], list[Path]]:
     subdirs: list[Path] = []
     files: list[Path] = []
@@ -243,3 +231,15 @@ def _list_directory_entries(path: Path) -> tuple[list[Path], list[Path]]:
             else:
                 files.append(Path(entry.path))
     return subdirs, files
+
+
+@lru_cache(maxsize=256)
+def _compile_glob(pattern: str) -> re.Pattern[str]:
+    return re.compile(
+        glob.translate(
+            pattern,
+            recursive=True,
+            include_hidden=True,
+            seps=("/",),
+        )
+    )
