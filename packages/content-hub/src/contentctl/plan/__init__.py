@@ -1,7 +1,5 @@
 """Planning helpers for contentctl operations."""
 
-from __future__ import annotations
-
 from .sync import (
     SyncAction,
     SyncError,

@@ -1,7 +1,5 @@
 """Planning for sync operations."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import AsyncIterable, AsyncIterator
 from dataclasses import dataclass

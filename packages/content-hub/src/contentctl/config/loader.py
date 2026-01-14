@@ -1,7 +1,5 @@
 """Config loading and validation for contentctl."""
 
-from __future__ import annotations
-
 from collections import UserDict
 from collections.abc import Iterable
 from functools import lru_cache

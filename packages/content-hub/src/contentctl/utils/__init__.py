@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from .concurrent import (
     default_concurrency,
     map_concurrent,

@@ -1,7 +1,5 @@
 """Workspace selection helpers for contentctl."""
 
-from __future__ import annotations
-
 from typing import Iterable
 
 from .loader import ConfigError

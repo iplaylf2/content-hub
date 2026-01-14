@@ -1,7 +1,5 @@
 """Module entry point for `python -m contentctl`."""
 
-from __future__ import annotations
-
 import sys
 import asyncio
 from pathlib import Path
