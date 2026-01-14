@@ -48,9 +48,6 @@ Do not re-test submodule logic here.
 - Prefer tests that express contract intent over incidental implementation.
 - Avoid tests that reach into private helpers or module internals; test the public API behavior instead.
 - Avoid asserting third-party tool details (e.g., schema validator error text) unless that output is an explicit contract.
-
-### Error Handling
-
 - Favor minimal surface-area tests for error handling: check error type and high-level message intent.
 - When behavior is unclear, confirm the expected contract before adding tests.
 
