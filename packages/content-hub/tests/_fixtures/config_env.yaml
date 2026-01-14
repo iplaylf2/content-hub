@@ -1,3 +1,3 @@
-origin: ${CONTENT_HUB_ROOT}/origin
+origin: ${SPACE_STATION}/origin
 workspaces:
-  docs: ${CONTENT_HUB_ROOT}/docs
+  docs: ${SPACE_STATION}/docs

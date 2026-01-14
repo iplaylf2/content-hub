@@ -44,7 +44,7 @@ def test_load_config_valid(fixture_name: str) -> None:
     [
         (
             "config_env.yaml",
-            {"CONTENT_HUB_ROOT": "root"},
+            {"SPACE_STATION": "station"},
             _check_env_config,
         ),
         (
