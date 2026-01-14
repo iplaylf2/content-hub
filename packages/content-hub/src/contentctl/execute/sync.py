@@ -8,7 +8,7 @@ from collections.abc import AsyncIterable, AsyncIterator
 from pathlib import Path
 from typing import TextIO
 
-from contentctl.concurrent import map_concurrent
+from contentctl.utils import map_concurrent
 from contentctl.plan.sync import SyncAction, SyncOperation
 
 

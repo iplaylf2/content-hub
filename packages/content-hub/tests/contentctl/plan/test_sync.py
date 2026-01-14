@@ -195,7 +195,9 @@ def _plan_semaphores() -> dict[str, asyncio.Semaphore]:
     }
 
 
-def _collect_operations(operations: AsyncIterator[SyncOperation]) -> list[SyncOperation]:
+def _collect_operations(
+    operations: AsyncIterator[SyncOperation],
+) -> list[SyncOperation]:
     async def collect() -> list[SyncOperation]:
         return [operation async for operation in operations]
 

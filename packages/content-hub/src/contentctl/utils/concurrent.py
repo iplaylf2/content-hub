@@ -1,5 +1,3 @@
-"""Concurrency utilities for async streams."""
-
 from __future__ import annotations
 
 import asyncio
@@ -46,21 +44,6 @@ async def map_concurrent(
 
     async for result in stream_taskgroup(build, buffer=buffer):
         yield result
-
-
-async def count_stream(
-    stream: AsyncIterable[_StreamItem],
-    predicate: Callable[[_StreamItem], bool] | None = None,
-) -> int:
-    count = 0
-    if predicate is None:
-        async for _ in stream:
-            count += 1
-        return count
-    async for item in stream:
-        if predicate(item):
-            count += 1
-    return count
 
 
 async def stream_taskgroup(

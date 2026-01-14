@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 import re
 
-from contentctl.concurrent import map_concurrent, stream_taskgroup
+from contentctl.utils import map_concurrent, stream_taskgroup
 
 
 async def plan_sync(

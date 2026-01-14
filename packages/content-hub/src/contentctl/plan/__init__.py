@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from contentctl.plan.sync import (
+from .sync import (
     SyncAction,
     SyncError,
     SyncOperation,

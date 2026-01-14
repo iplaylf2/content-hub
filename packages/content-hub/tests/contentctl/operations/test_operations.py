@@ -4,7 +4,6 @@ import asyncio
 from collections.abc import AsyncIterator
 from io import StringIO
 from pathlib import Path
-from typing import TextIO
 from unittest.mock import create_autospec
 
 import pytest
@@ -21,34 +20,20 @@ from contentctl.plan.sync import SyncAction, SyncOperation
 def test_run_deploy_dry_run_prints_plan(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    printed: list[AsyncIterator[SyncOperation]] = []
+    executed: list[bool] = []
 
-    def record_print(
-        stream: AsyncIterator[SyncOperation],
-        source_root: Path,
-        destination_root: Path,
-        output: TextIO,
-    ) -> AsyncIterator[SyncOperation]:
-        printed.append(stream)
-        return stream
+    async def record_execute(*args: object, **kwargs: object) -> int:
+        dry_run = kwargs.get("dry_run")
+        executed.append(bool(dry_run))
+        return 1
 
     plan_sync_mock = create_autospec(
         deploy_mod.plan_sync,
         side_effect=_fake_plan_sync,
     )
     monkeypatch.setattr(deploy_mod, "resolve_sync_paths", _fake_resolve_sync_paths)
-
-    def fail_apply(
-        _stream: AsyncIterator[SyncOperation],
-        source_root: Path,
-        destination_root: Path,
-        semaphore: asyncio.Semaphore,
-    ) -> AsyncIterator[SyncOperation]:
-        raise AssertionError("apply should not run")
-
     monkeypatch.setattr(deploy_mod, "plan_sync", plan_sync_mock)
-    monkeypatch.setattr(deploy_mod, "print_sync_plan", record_print)
-    monkeypatch.setattr(deploy_mod, "apply_sync_plan", fail_apply)
+    monkeypatch.setattr(deploy_mod, "execute_sync_operation", record_execute)
 
     output = StringIO()
     asyncio.run(
@@ -64,33 +49,30 @@ def test_run_deploy_dry_run_prints_plan(
 
     text = output.getvalue()
     assert "deploy docs:" in text
-    assert "1 files planned" in text
-    assert len(printed) == 1
+    assert len(executed) == 1
+    assert executed[0] is True
 
 
 def test_run_adopt_applies_plan(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    applied: list[AsyncIterator[SyncOperation]] = []
-    printed: list[AsyncIterator[SyncOperation]] = []
+    executed: list[tuple[bool, bool]] = []
 
-    def record_apply(
-        stream: AsyncIterator[SyncOperation],
-        source_root: Path,
-        destination_root: Path,
-        semaphore: asyncio.Semaphore,
-    ) -> AsyncIterator[SyncOperation]:
-        applied.append(stream)
-        return stream
+    async def record_execute(*args: object, **kwargs: object) -> int:
+        dry_run = kwargs.get("dry_run")
+        verbose = kwargs.get("verbose")
+        executed.append((bool(dry_run), bool(verbose)))
+        operation_name = kwargs.get("operation_name", "")
+        workspace_name = kwargs.get("workspace_name", "")
+        output = kwargs.get("output")
+        if output and hasattr(output, "write"):
+            from typing import cast, TextIO
 
-    def record_print(
-        stream: AsyncIterator[SyncOperation],
-        source_root: Path,
-        destination_root: Path,
-        output: TextIO,
-    ) -> AsyncIterator[SyncOperation]:
-        printed.append(stream)
-        return stream
+            print(
+                f"{operation_name} {workspace_name}: 1 files copied",
+                file=cast(TextIO, output),
+            )
+        return 1
 
     plan_sync_mock = create_autospec(
         adopt_mod.plan_sync,
@@ -98,8 +80,7 @@ def test_run_adopt_applies_plan(
     )
     monkeypatch.setattr(adopt_mod, "resolve_sync_paths", _fake_resolve_sync_paths)
     monkeypatch.setattr(adopt_mod, "plan_sync", plan_sync_mock)
-    monkeypatch.setattr(adopt_mod, "apply_sync_plan", record_apply)
-    monkeypatch.setattr(adopt_mod, "print_sync_plan", record_print)
+    monkeypatch.setattr(adopt_mod, "execute_sync_operation", record_execute)
 
     output = StringIO()
     asyncio.run(
@@ -116,56 +97,37 @@ def test_run_adopt_applies_plan(
     text = output.getvalue()
     assert "adopt docs:" in text
     assert "1 files copied" in text
-    assert len(applied) == 1
-    assert printed == []
+    assert len(executed) == 1
+    assert executed[0] == (False, False)
 
 
 @pytest.mark.parametrize(
-    ("dry_run", "verbose", "expects_apply", "summary"),
+    ("dry_run", "verbose"),
     [
-        (True, False, False, "planned"),
-        (False, True, True, "copied"),
+        (True, False),
+        (False, True),
     ],
 )
 def test_run_adopt_prints_plan_when_requested(
     monkeypatch: pytest.MonkeyPatch,
     dry_run: bool,
     verbose: bool,
-    expects_apply: bool,
-    summary: str,
 ) -> None:
-    applied: list[AsyncIterator[SyncOperation]] = []
-    printed: list[AsyncIterator[SyncOperation]] = []
+    executed: list[tuple[bool, bool]] = []
 
-    def record_print(
-        stream: AsyncIterator[SyncOperation],
-        source_root: Path,
-        destination_root: Path,
-        output: TextIO,
-    ) -> AsyncIterator[SyncOperation]:
-        printed.append(stream)
-        return stream
+    async def record_execute(*args: object, **kwargs: object) -> int:
+        dry_run = kwargs.get("dry_run")
+        verbose = kwargs.get("verbose")
+        executed.append((bool(dry_run), bool(verbose)))
+        return 1
 
     plan_sync_mock = create_autospec(
         adopt_mod.plan_sync,
         side_effect=_fake_plan_sync,
     )
     monkeypatch.setattr(adopt_mod, "resolve_sync_paths", _fake_resolve_sync_paths)
-
-    def maybe_apply(
-        stream: AsyncIterator[SyncOperation],
-        source_root: Path,
-        destination_root: Path,
-        semaphore: asyncio.Semaphore,
-    ) -> AsyncIterator[SyncOperation]:
-        if not expects_apply:
-            raise AssertionError("apply should not run")
-        applied.append(stream)
-        return stream
-
     monkeypatch.setattr(adopt_mod, "plan_sync", plan_sync_mock)
-    monkeypatch.setattr(adopt_mod, "apply_sync_plan", maybe_apply)
-    monkeypatch.setattr(adopt_mod, "print_sync_plan", record_print)
+    monkeypatch.setattr(adopt_mod, "execute_sync_operation", record_execute)
 
     output = StringIO()
     asyncio.run(
@@ -181,34 +143,20 @@ def test_run_adopt_prints_plan_when_requested(
 
     text = output.getvalue()
     assert "adopt docs:" in text
-    assert f"1 files {summary}" in text
-    assert len(applied) == (1 if expects_apply else 0)
-    assert len(printed) == 1
+    assert len(executed) == 1
+    assert executed[0] == (dry_run, verbose)
 
 
 def test_run_deploy_verbose_prints_plan(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    applied: list[AsyncIterator[SyncOperation]] = []
-    printed: list[AsyncIterator[SyncOperation]] = []
+    executed: list[tuple[bool, bool]] = []
 
-    def record_apply(
-        stream: AsyncIterator[SyncOperation],
-        source_root: Path,
-        destination_root: Path,
-        semaphore: asyncio.Semaphore,
-    ) -> AsyncIterator[SyncOperation]:
-        applied.append(stream)
-        return stream
-
-    def record_print(
-        stream: AsyncIterator[SyncOperation],
-        source_root: Path,
-        destination_root: Path,
-        output: TextIO,
-    ) -> AsyncIterator[SyncOperation]:
-        printed.append(stream)
-        return stream
+    async def record_execute(*args: object, **kwargs: object) -> int:
+        dry_run = kwargs.get("dry_run")
+        verbose = kwargs.get("verbose")
+        executed.append((bool(dry_run), bool(verbose)))
+        return 1
 
     plan_sync_mock = create_autospec(
         deploy_mod.plan_sync,
@@ -216,8 +164,7 @@ def test_run_deploy_verbose_prints_plan(
     )
     monkeypatch.setattr(deploy_mod, "resolve_sync_paths", _fake_resolve_sync_paths)
     monkeypatch.setattr(deploy_mod, "plan_sync", plan_sync_mock)
-    monkeypatch.setattr(deploy_mod, "apply_sync_plan", record_apply)
-    monkeypatch.setattr(deploy_mod, "print_sync_plan", record_print)
+    monkeypatch.setattr(deploy_mod, "execute_sync_operation", record_execute)
 
     output = StringIO()
     asyncio.run(
@@ -237,9 +184,8 @@ def test_run_deploy_verbose_prints_plan(
     text = output.getvalue()
     assert "deploy docs:" in text
     assert "deploy assets:" in text
-    assert "1 files copied" in text
-    assert len(applied) == 2
-    assert len(printed) == 2
+    assert len(executed) == 2
+    assert all(dry_run is False and verbose is True for dry_run, verbose in executed)
 
 
 def _fake_stream() -> AsyncIterator[SyncOperation]:

@@ -6,9 +6,9 @@ import asyncio
 from typing import Iterable, TextIO
 
 from contentctl.config import Workspace
-from contentctl.concurrent import count_stream, default_concurrency
-from contentctl.execute.sync import apply_sync_plan, print_sync_plan
-from contentctl.plan.sync import SyncAction, plan_sync, resolve_sync_paths
+from contentctl.operation_kit import execute_sync_operation, resolve_sync_roots
+from contentctl.plan.sync import plan_sync, resolve_sync_paths
+from contentctl.utils import default_concurrency
 
 
 async def run_deploy(
@@ -39,10 +39,8 @@ async def run_deploy(
             semaphore=io_semaphore,
         )
 
-        source_is_file = source_path.is_file()
-        source_root = source_path.parent if source_is_file else source_path
-        destination_root = (
-            destination_path.parent if source_is_file else destination_path
+        source_root, destination_root = resolve_sync_roots(
+            source_path, destination_path
         )
 
         if verbose or dry_run:
@@ -51,39 +49,14 @@ async def run_deploy(
                 file=output,
             )
 
-        if dry_run:
-            stream = print_sync_plan(
-                stream,
-                source_root=source_root,
-                destination_root=destination_root,
-                output=output,
-            )
-            total = await count_stream(stream)
-            print(
-                f"deploy {workspace.name}: {total} files planned",
-                file=output,
-            )
-            continue
-
-        if verbose:
-            stream = print_sync_plan(
-                stream,
-                source_root=source_root,
-                destination_root=destination_root,
-                output=output,
-            )
-
-        stream = apply_sync_plan(
-            stream,
+        await execute_sync_operation(
+            stream=stream,
             source_root=source_root,
             destination_root=destination_root,
             semaphore=io_semaphore,
-        )
-        total = await count_stream(
-            stream,
-            predicate=lambda operation: operation.action is not SyncAction.SKIP,
-        )
-        print(
-            f"deploy {workspace.name}: {total} files copied",
-            file=output,
+            operation_name="deploy",
+            workspace_name=workspace.name,
+            dry_run=dry_run,
+            verbose=verbose,
+            output=output,
         )

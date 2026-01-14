@@ -1,0 +1,85 @@
+from __future__ import annotations
+
+import asyncio
+from collections.abc import AsyncIterable
+from pathlib import Path
+from typing import TextIO
+
+from contentctl.execute.sync import apply_sync_plan, print_sync_plan
+from contentctl.plan.sync import SyncAction, SyncOperation
+from contentctl.utils import count_stream
+
+
+def resolve_sync_roots(source_path: Path, destination_path: Path) -> tuple[Path, Path]:
+    source_is_file = source_path.is_file()
+    source_root = source_path.parent if source_is_file else source_path
+    destination_root = destination_path.parent if source_is_file else destination_path
+    return source_root, destination_root
+
+
+async def execute_sync_operation(
+    stream: AsyncIterable[SyncOperation],
+    source_root: Path,
+    destination_root: Path,
+    semaphore: asyncio.Semaphore,
+    operation_name: str,
+    workspace_name: str,
+    dry_run: bool,
+    verbose: bool,
+    output: TextIO,
+) -> int:
+    if dry_run:
+        return await _count_planned_operations(
+            stream,
+            source_root,
+            destination_root,
+            operation_name,
+            workspace_name,
+            output,
+        )
+    else:
+        return await _execute_and_count_copied(
+            stream,
+            source_root,
+            destination_root,
+            semaphore,
+            operation_name,
+            workspace_name,
+            verbose,
+            output,
+        )
+
+
+async def _count_planned_operations(
+    stream: AsyncIterable[SyncOperation],
+    source_root: Path,
+    destination_root: Path,
+    operation_name: str,
+    workspace_name: str,
+    output: TextIO,
+) -> int:
+    stream = print_sync_plan(stream, source_root, destination_root, output)
+    total = await count_stream(stream)
+    print(f"{operation_name} {workspace_name}: {total} files planned", file=output)
+    return total
+
+
+async def _execute_and_count_copied(
+    stream: AsyncIterable[SyncOperation],
+    source_root: Path,
+    destination_root: Path,
+    semaphore: asyncio.Semaphore,
+    operation_name: str,
+    workspace_name: str,
+    verbose: bool,
+    output: TextIO,
+) -> int:
+    if verbose:
+        stream = print_sync_plan(stream, source_root, destination_root, output)
+
+    stream = apply_sync_plan(stream, source_root, destination_root, semaphore)
+    total = await count_stream(
+        stream, predicate=lambda op: op.action is not SyncAction.SKIP
+    )
+    print(f"{operation_name} {workspace_name}: {total} files copied", file=output)
+    return total
