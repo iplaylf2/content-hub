@@ -1,21 +1,22 @@
 from __future__ import annotations
 
 import asyncio
+import shutil
+from collections.abc import AsyncIterator
 from io import StringIO
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
+from contentctl.execute.sync import apply_sync_plan, print_sync_plan
+from contentctl.plan.sync import SyncAction, SyncOperation
 from tests.contentctl.execute.fixtures import (
-    SOURCE_ROOT,
     DESTINATION_ROOT,
+    SOURCE_ROOT,
     make_stream,
     make_sync_op,
 )
-from contentctl.execute.sync import apply_sync_plan, print_sync_plan
-from collections.abc import AsyncIterator
-
-from contentctl.plan.sync import SyncAction, SyncOperation
 
 
 @pytest.mark.parametrize(
@@ -37,17 +38,18 @@ def test_apply_sync_plan_copies_non_skip(
     expected_actions: list[tuple[str, str]],
 ) -> None:
     copy_calls: list[tuple[Path, Path]] = []
-
-    def fake_copy2(src: Path, dst: Path) -> None:
-        copy_calls.append((src, dst))
-
     mkdir_calls: list[Path] = []
 
-    def fake_mkdir(self: Path, parents: bool = False, exist_ok: bool = False) -> None:
+    def copy2_side_effect(src: Path, dst: Path) -> None:
+        copy_calls.append((src, dst))
+
+    def mkdir_tracker(self: Path, *args: object, **kwargs: object) -> None:
         mkdir_calls.append(self)
 
-    monkeypatch.setattr("contentctl.execute.sync.shutil.copy2", fake_copy2)
-    monkeypatch.setattr(Path, "mkdir", fake_mkdir)
+    copy2_mock = Mock(spec=shutil.copy2, side_effect=copy2_side_effect)
+
+    monkeypatch.setattr("contentctl.execute.sync.shutil.copy2", copy2_mock)
+    monkeypatch.setattr(Path, "mkdir", mkdir_tracker)
 
     stream = make_stream(*[make_sync_op(path, action) for path, action in operations])
 

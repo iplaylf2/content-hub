@@ -47,11 +47,31 @@ def test_run_adopt_applies_plan(
             )
         return 1
 
+    def plan_sync_side_effect(
+        *_args: object,
+        **_kwargs: object,
+    ) -> AsyncIterator[SyncOperation]:
+        async def iter_ops() -> AsyncIterator[SyncOperation]:
+            yield SyncOperation(
+                relative=Path("guide.txt"),
+                action=SyncAction.COPY,
+            )
+
+        return iter_ops()
+
     plan_sync_mock = create_autospec(
         adopt_mod.plan_sync,
-        side_effect=_fake_plan_sync,
+        side_effect=plan_sync_side_effect,
     )
-    monkeypatch.setattr(adopt_mod, "resolve_sync_paths", _fake_resolve_sync_paths)
+    resolve_sync_paths_mock = create_autospec(
+        adopt_mod.resolve_sync_paths,
+        return_value=(
+            fixture_path("plan_sync", "source_dir"),
+            fixture_path("plan_sync", "destination_single"),
+        ),
+    )
+
+    monkeypatch.setattr(adopt_mod, "resolve_sync_paths", resolve_sync_paths_mock)
     monkeypatch.setattr(adopt_mod, "plan_sync", plan_sync_mock)
     monkeypatch.setattr(adopt_mod, "execute_sync_operation", record_execute)
 
@@ -72,33 +92,6 @@ def test_run_adopt_applies_plan(
     assert "1 files copied" in text
     assert len(executed) == 1
     assert executed[0] == (dry_run, verbose)
-
-
-def _fake_stream() -> AsyncIterator[SyncOperation]:
-    async def iter_ops() -> AsyncIterator[SyncOperation]:
-        yield SyncOperation(
-            relative=Path("guide.txt"),
-            action=SyncAction.COPY,
-        )
-
-    return iter_ops()
-
-
-def _fake_plan_sync(
-    *_args: object,
-    **_kwargs: object,
-) -> AsyncIterator[SyncOperation]:
-    return _fake_stream()
-
-
-def _fake_resolve_sync_paths(
-    *_args: object,
-    **_kwargs: object,
-) -> tuple[Path, Path]:
-    return (
-        fixture_path("plan_sync", "source_dir"),
-        fixture_path("plan_sync", "destination_single"),
-    )
 
 
 ORIGIN = Workspace(name="", path=Path("/origin"), include=(), exclude=())

@@ -7,7 +7,7 @@ import pytest
 
 from tests.contentctl.fixtures import DEFAULT_PATH, make_workspace
 from contentctl.cli_parser import AdoptContext, DeployContext
-from contentctl.config import ResolvedConfig, Workspace
+from contentctl.config import ResolvedConfig
 import contentctl.__main__ as mainmod
 
 
@@ -26,22 +26,29 @@ def test_main_exits_on_config_errors(
 ) -> None:
     ctx = _deploy_ctx()
 
-    def fake_parse_cli(_argv: list[str], _cwd: Path) -> DeployContext:
-        return ctx
-
-    def fake_load_config(_path: Path) -> dict[str, object]:
+    def load_config_side_effect(_path: Path) -> dict[str, object]:
         if failure == "load_config":
             raise mainmod.ConfigError(message)
         return {}
 
-    def fake_resolve_config(_cfg: dict[str, object], _path: Path) -> ResolvedConfig:
+    def resolve_config_side_effect(
+        _cfg: dict[str, object], _path: Path
+    ) -> ResolvedConfig:
         if failure == "resolve_config":
             raise mainmod.ConfigError(message)
         return _resolved_config()
 
-    monkeypatch.setattr(mainmod, "parse_cli", fake_parse_cli)
-    monkeypatch.setattr(mainmod, "load_config", fake_load_config)
-    monkeypatch.setattr(mainmod, "resolve_config", fake_resolve_config)
+    parse_cli_mock = create_autospec(mainmod.parse_cli, return_value=ctx)
+    load_config_mock = create_autospec(
+        mainmod.load_config, side_effect=load_config_side_effect
+    )
+    resolve_config_mock = create_autospec(
+        mainmod.resolve_config, side_effect=resolve_config_side_effect
+    )
+
+    monkeypatch.setattr(mainmod, "parse_cli", parse_cli_mock)
+    monkeypatch.setattr(mainmod, "load_config", load_config_mock)
+    monkeypatch.setattr(mainmod, "resolve_config", resolve_config_mock)
 
     with pytest.raises(SystemExit) as excinfo:
         mainmod.main()
@@ -92,13 +99,12 @@ def test_main_exits_on_dispatch_config_error(
 ) -> None:
     ctx = _deploy_ctx(all_workspaces=False, workspaces=workspaces)
 
-    def fake_select_workspaces(
-        _resolved: ResolvedConfig, _workspaces: list[str]
-    ) -> list[Workspace]:
-        raise mainmod.ConfigError(message)
+    select_workspaces_mock = create_autospec(
+        mainmod.select_workspaces, side_effect=mainmod.ConfigError(message)
+    )
 
     _patch_main_context(monkeypatch, ctx=ctx, resolved=_resolved_config())
-    monkeypatch.setattr(mainmod, "select_workspaces", fake_select_workspaces)
+    monkeypatch.setattr(mainmod, "select_workspaces", select_workspaces_mock)
 
     with pytest.raises(SystemExit) as excinfo:
         mainmod.main()
