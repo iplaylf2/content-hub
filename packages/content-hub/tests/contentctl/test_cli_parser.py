@@ -6,7 +6,15 @@ from contentctl.cli_parser import AdoptContext, DeployContext, parse_cli
 
 
 @pytest.mark.parametrize(
-    ("argv", "ctx_type", "command", "path", "all_workspaces", "workspaces"),
+    (
+        "argv",
+        "ctx_type",
+        "command",
+        "path",
+        "all_workspaces",
+        "workspaces",
+        "workspace",
+    ),
     [
         (
             ["deploy", "docs", "--path", "api"],
@@ -15,6 +23,7 @@ from contentctl.cli_parser import AdoptContext, DeployContext, parse_cli
             "api",
             False,
             ["docs"],
+            None,
         ),
         (
             ["deploy", "--all-workspaces"],
@@ -23,8 +32,9 @@ from contentctl.cli_parser import AdoptContext, DeployContext, parse_cli
             DEFAULT_PATH,
             True,
             [],
+            None,
         ),
-        (["adopt", "docs"], AdoptContext, "adopt", DEFAULT_PATH, None, None),
+        (["adopt", "docs"], AdoptContext, "adopt", DEFAULT_PATH, None, None, "docs"),
     ],
 )
 def test_parse_cli_success(
@@ -35,6 +45,7 @@ def test_parse_cli_success(
     path: str,
     all_workspaces: bool | None,
     workspaces: list[str] | None,
+    workspace: str | None,
 ) -> None:
     ctx = parse_cli(argv, tmp_path)
 
@@ -46,7 +57,7 @@ def test_parse_cli_success(
         assert ctx.all_workspaces is all_workspaces
         assert ctx.workspaces == workspaces
     else:
-        assert ctx.workspace == "docs"
+        assert ctx.workspace == workspace
 
 
 @pytest.mark.parametrize(

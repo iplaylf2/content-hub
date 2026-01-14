@@ -40,16 +40,18 @@ def test_load_config_valid(fixture_name: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("fixture_name", "env_vars", "expected_checks"),
+    ("fixture_name", "env_vars", "env_to_unset", "expected_checks"),
     [
         (
             "config_env.yaml",
             {"SPACE_STATION": "station"},
+            [],
             _check_env_config,
         ),
         (
             "config_env_nested.yaml",
             {"ROCKET_LAUNCHPAD": "launchpad"},
+            ["MISSING_VAR"],
             _check_env_nested_config,
         ),
     ],
@@ -59,12 +61,13 @@ def test_load_config_env_substitution(
     monkeypatch: pytest.MonkeyPatch,
     fixture_name: str,
     env_vars: dict[str, str],
+    env_to_unset: list[str],
     expected_checks: Callable[[dict[str, Any], str], bool],
 ) -> None:
     for key, value in env_vars.items():
         monkeypatch.setenv(key, str(tmp_path / value))
-    if fixture_name == "config_env_nested.yaml":
-        monkeypatch.delenv("MISSING_VAR", raising=False)
+    for env_var in env_to_unset:
+        monkeypatch.delenv(env_var, raising=False)
     config_path = fixture_path(fixture_name)
 
     config = load_config(config_path)

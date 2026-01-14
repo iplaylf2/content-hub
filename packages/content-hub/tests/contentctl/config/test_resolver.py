@@ -87,17 +87,21 @@ def test_resolve_config_workspace_patterns(
 
 
 @pytest.mark.parametrize(
-    "fixture_name",
-    ["resolver_sort.yaml"],
+    ("fixture_name", "expected_names"),
+    [
+        ("resolver_sort.yaml", ["alpha", "zeta"]),
+    ],
 )
-def test_select_all_workspaces_sorted(fixture_name: str) -> None:
+def test_select_all_workspaces_sorted(
+    fixture_name: str, expected_names: list[str]
+) -> None:
     config_path = fixture_path(fixture_name)
     config = _load_fixture(config_path)
 
     resolved = resolve_config(config, config_path)
     names = [workspace.name for workspace in select_all_workspaces(resolved)]
 
-    assert names == ["alpha", "zeta"]
+    assert names == expected_names
 
 
 def test_select_workspaces_unknown() -> None:
