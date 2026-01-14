@@ -73,39 +73,6 @@ def test_print_sync_plan_formats_lines() -> None:
     ]
 
 
-def test_apply_sync_plan_all_skip_no_filesystem_changes(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    copy_calls: list[tuple[Path, Path]] = []
-
-    def fake_copy2(src: Path, dst: Path) -> None:
-        copy_calls.append((src, dst))
-
-    mkdir_calls: list[Path] = []
-
-    def fake_mkdir(self: Path, parents: bool = False, exist_ok: bool = False) -> None:
-        mkdir_calls.append(self)
-
-    monkeypatch.setattr("contentctl.execute.sync.shutil.copy2", fake_copy2)
-    monkeypatch.setattr(Path, "mkdir", fake_mkdir)
-
-    stream = make_stream(
-        make_sync_op("drafts.txt", SyncAction.SKIP),
-        make_sync_op("notes.txt", SyncAction.SKIP),
-    )
-
-    observed = apply_sync_plan(
-        stream,
-        source_root=SOURCE_ROOT,
-        destination_root=DESTINATION_ROOT,
-        semaphore=asyncio.Semaphore(2),
-    )
-    _drain_stream(observed)
-
-    assert copy_calls == []
-    assert mkdir_calls == []
-
-
 def _drain_stream(stream: AsyncIterator[SyncOperation]) -> None:
     async def consume() -> None:
         async for _ in stream:

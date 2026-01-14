@@ -12,18 +12,17 @@ from contentctl.plan.sync import SyncOperation
 
 
 @pytest.mark.parametrize(
-    ("path", "destination_name"),
+    "path",
     [
-        (str(Path("/") / "abs"), "destination_dir"),
-        ("../escape", "destination_dir"),
+        str(Path("/") / "abs"),
+        "../escape",
     ],
 )
 def test_resolve_sync_paths_rejects_invalid_paths(
     path: str,
-    destination_name: str,
 ) -> None:
     source_root = fixture_path("plan_sync", "source_dir")
-    destination_root = fixture_path("plan_sync", destination_name)
+    destination_root = fixture_path("plan_sync", "destination_single")
 
     with pytest.raises(SyncError):
         resolve_sync_paths(
@@ -47,7 +46,7 @@ def test_resolve_sync_paths_rejects_missing_source(tmp_path: Path) -> None:
 
 def test_plan_sync_applies_include_exclude() -> None:
     source_root = fixture_path("plan_sync", "source_dir")
-    destination_root = fixture_path("plan_sync", "destination_dir")
+    destination_root = fixture_path("plan_sync", "destination_single")
 
     source_path, destination_path = resolve_sync_paths(
         source_root=source_root,
@@ -121,7 +120,7 @@ def test_plan_sync_file_source_excluded() -> None:
 
 def test_plan_sync_reports_destination_skips() -> None:
     source_root = fixture_path("plan_sync", "source_dir")
-    destination_root = fixture_path("plan_sync", "destination_dir")
+    destination_root = fixture_path("plan_sync", "destination_single")
 
     source_path, destination_path = resolve_sync_paths(
         source_root=source_root,
@@ -168,7 +167,7 @@ def test_resolve_sync_paths_rejects_overlapping_paths(
 
 def test_plan_sync_file_destination_exclude_marks_skip() -> None:
     source_root = fixture_path("plan_sync", "source_dir")
-    destination_root = fixture_path("plan_sync", "destination_dir")
+    destination_root = fixture_path("plan_sync", "destination_single")
     source_path, destination_path = resolve_sync_paths(
         source_root=source_root,
         destination_root=destination_root,
