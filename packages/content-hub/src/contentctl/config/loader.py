@@ -16,7 +16,6 @@ from jsonschema.exceptions import ValidationError
 
 
 def load_config(config_path: Path) -> dict[str, Any]:
-    """Load and validate a content-hub config file."""
     if not config_path.exists():
         raise ConfigError(f"Config file not found: {config_path}")
 
@@ -45,7 +44,7 @@ def load_config(config_path: Path) -> dict[str, Any]:
 
 
 class ConfigError(ValueError):
-    """Raised when the config file cannot be loaded or validated."""
+    pass
 
 
 def _validate_schema(config: dict[str, Any]) -> None:

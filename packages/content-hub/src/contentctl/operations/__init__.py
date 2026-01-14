@@ -1,5 +1,3 @@
-"""Execution helpers for contentctl commands."""
-
 from contentctl.plan.sync import SyncError
 
 from .adopt import run_adopt

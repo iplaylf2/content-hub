@@ -1,5 +1,3 @@
-"""Planning for sync operations."""
-
 import asyncio
 from collections.abc import AsyncIterable, AsyncIterator
 from dataclasses import dataclass
@@ -54,7 +52,7 @@ def resolve_sync_paths(
 
 
 class SyncError(RuntimeError):
-    """Raised when a sync operation cannot be completed."""
+    pass
 
 
 @dataclass(frozen=True)

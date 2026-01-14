@@ -1,5 +1,3 @@
-"""Adopt operation implementation."""
-
 import asyncio
 from typing import TextIO
 

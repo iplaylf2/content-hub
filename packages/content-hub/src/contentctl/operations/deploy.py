@@ -1,5 +1,3 @@
-"""Deploy operation implementation."""
-
 import asyncio
 from typing import Iterable, TextIO
 

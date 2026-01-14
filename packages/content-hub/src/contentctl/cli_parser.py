@@ -46,8 +46,6 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
 
 @dataclass(frozen=True)
 class BaseContext:
-    """Resolved CLI inputs shared across commands."""
-
     config_path: Path
     dry_run: bool
     verbose: bool
@@ -55,8 +53,6 @@ class BaseContext:
 
 @dataclass(frozen=True)
 class DeployContext(BaseContext):
-    """Resolved CLI inputs for deploy."""
-
     command: Literal["deploy"]
     all_workspaces: bool
     workspaces: list[str]
@@ -65,8 +61,6 @@ class DeployContext(BaseContext):
 
 @dataclass(frozen=True)
 class AdoptContext(BaseContext):
-    """Resolved CLI inputs for adopt."""
-
     command: Literal["adopt"]
     workspace: str
     path: str

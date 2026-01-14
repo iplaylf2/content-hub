@@ -1,5 +1,3 @@
-"""Execution for sync plans."""
-
 import asyncio
 import shutil
 from collections.abc import AsyncIterable, AsyncIterator

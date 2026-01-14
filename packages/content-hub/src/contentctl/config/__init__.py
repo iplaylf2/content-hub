@@ -1,5 +1,3 @@
-"""Configuration loading and resolution for contentctl."""
-
 from .loader import ConfigError, load_config
 from .resolver import ResolvedConfig, Workspace, resolve_config
 from .selectors import select_all_workspaces, select_workspaces

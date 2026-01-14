@@ -1,5 +1,3 @@
-"""Workspace selection helpers for contentctl."""
-
 from typing import Iterable
 
 from .loader import ConfigError
