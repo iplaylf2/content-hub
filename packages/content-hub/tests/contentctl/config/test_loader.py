@@ -1,11 +1,31 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from contentctl.config import ConfigError, load_config
 from tests.contentctl.fixtures import fixture_path
+
+
+def _check_env_config(config: dict[str, Any], root: str) -> bool:
+    return str(config["origin"]).endswith("/origin") and str(
+        config["workspaces"]["docs"]
+    ).endswith("/docs")
+
+
+def _check_env_nested_config(config: dict[str, Any], root: str) -> bool:
+    return (
+        config["defaults"]["exclude"] == [f"{root}/tmp/*"]
+        and config["origin"]["path"] == f"{root}/origin"
+        and config["origin"]["include"] == [f"{root}/docs/*.md", "/fallback/*.md"]
+        and config["workspaces"]["docs"]["path"] == f"{root}/docs"
+        and config["workspaces"]["docs"]["include"] == [f"{root}/docs/*.md"]
+        and config["workspaces"]["docs"]["exclude"] == [f"{root}/docs/drafts/*.md"]
+        and config["workspaces"]["assets"] == f"{root}/assets"
+    )
 
 
 def test_load_config_valid() -> None:
@@ -17,38 +37,38 @@ def test_load_config_valid() -> None:
     assert config["workspaces"]["docs"] == "./docs"
 
 
+@pytest.mark.parametrize(
+    ("fixture_name", "env_vars", "expected_checks"),
+    [
+        (
+            "config_env.yaml",
+            {"CONTENT_HUB_ROOT": "root"},
+            _check_env_config,
+        ),
+        (
+            "config_env_nested.yaml",
+            {"ROCKET_LAUNCHPAD": "launchpad"},
+            _check_env_nested_config,
+        ),
+    ],
+)
 def test_load_config_env_substitution(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    fixture_name: str,
+    env_vars: dict[str, str],
+    expected_checks: Callable[[dict[str, Any], str], bool],
 ) -> None:
-    monkeypatch.setenv("CONTENT_HUB_ROOT", str(tmp_path / "root"))
-    config_path = fixture_path("config_env.yaml")
+    for key, value in env_vars.items():
+        monkeypatch.setenv(key, str(tmp_path / value))
+    if fixture_name == "config_env_nested.yaml":
+        monkeypatch.delenv("MISSING_VAR", raising=False)
+    config_path = fixture_path(fixture_name)
 
     config = load_config(config_path)
 
-    assert config["origin"].endswith("/origin")
-    assert config["workspaces"]["docs"].endswith("/docs")
-
-
-def test_load_config_env_substitution_nested(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    launchpad = tmp_path / "launchpad"
-    monkeypatch.setenv("ROCKET_LAUNCHPAD", str(launchpad))
-    monkeypatch.delenv("MISSING_VAR", raising=False)
-    config_path = fixture_path("config_env_nested.yaml")
-
-    config = load_config(config_path)
-
-    assert config["defaults"]["exclude"] == [f"{launchpad}/tmp/*"]
-    assert config["origin"]["path"] == f"{launchpad}/origin"
-    assert config["origin"]["include"] == [
-        f"{launchpad}/docs/*.md",
-        "/fallback/*.md",
-    ]
-    assert config["workspaces"]["docs"]["path"] == f"{launchpad}/docs"
-    assert config["workspaces"]["docs"]["include"] == [f"{launchpad}/docs/*.md"]
-    assert config["workspaces"]["docs"]["exclude"] == [f"{launchpad}/docs/drafts/*.md"]
-    assert config["workspaces"]["assets"] == f"{launchpad}/assets"
+    root_value = str(tmp_path / list(env_vars.values())[0])
+    assert expected_checks(config, root_value)
 
 
 def test_load_config_missing_file(tmp_path: Path) -> None:

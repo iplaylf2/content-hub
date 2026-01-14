@@ -50,15 +50,23 @@ def test_main_exits_on_config_errors(
     assert message in capsys.readouterr().err
 
 
+@pytest.mark.parametrize(
+    "message",
+    [
+        "sync failed",
+        "operation error",
+    ],
+)
 def test_main_exits_on_sync_error(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    message: str,
 ) -> None:
     ctx = _deploy_ctx()
-
     _patch_main_context(monkeypatch, ctx=ctx, resolved=_resolved_config())
 
     async def raise_sync_error(_ctx: object, _resolved: object) -> None:
-        raise mainmod.SyncError("sync failed")
+        raise mainmod.SyncError(message)
 
     monkeypatch.setattr(mainmod, "_dispatch", raise_sync_error)
 
@@ -66,18 +74,28 @@ def test_main_exits_on_sync_error(
         mainmod.main()
 
     assert excinfo.value.code == 1
-    assert "sync failed" in capsys.readouterr().err
+    assert message in capsys.readouterr().err
 
 
+@pytest.mark.parametrize(
+    ("workspaces", "message"),
+    [
+        (["missing"], "unknown workspace"),
+        (["invalid", "notfound"], "unknown workspace"),
+    ],
+)
 def test_main_exits_on_dispatch_config_error(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    workspaces: list[str],
+    message: str,
 ) -> None:
-    ctx = _deploy_ctx(all_workspaces=False, workspaces=["missing"])
+    ctx = _deploy_ctx(all_workspaces=False, workspaces=workspaces)
 
     def fake_select_workspaces(
         _resolved: ResolvedConfig, _workspaces: list[str]
     ) -> list[Workspace]:
-        raise mainmod.ConfigError("unknown workspace")
+        raise mainmod.ConfigError(message)
 
     _patch_main_context(monkeypatch, ctx=ctx, resolved=_resolved_config())
     monkeypatch.setattr(mainmod, "select_workspaces", fake_select_workspaces)
@@ -86,13 +104,18 @@ def test_main_exits_on_dispatch_config_error(
         mainmod.main()
 
     assert excinfo.value.code == 1
-    assert "unknown workspace" in capsys.readouterr().err
+    assert message in capsys.readouterr().err
 
 
+@pytest.mark.parametrize(
+    "verbose",
+    [True],
+)
 def test_main_dispatches_deploy_all_workspaces(
     monkeypatch: pytest.MonkeyPatch,
+    verbose: bool,
 ) -> None:
-    ctx = _deploy_ctx(verbose=True)
+    ctx = _deploy_ctx(verbose=verbose)
 
     run_deploy_mock = AsyncMock(spec=mainmod.run_deploy)
     monkeypatch.setattr(mainmod, "run_deploy", run_deploy_mock)
@@ -104,15 +127,19 @@ def test_main_dispatches_deploy_all_workspaces(
     assert "workspaces" in run_deploy_mock.call_args.kwargs
 
 
+@pytest.mark.parametrize(
+    "workspaces",
+    [
+        ["alpha", "zeta"],
+    ],
+)
 def test_main_dispatches_deploy_selected_workspaces(
     monkeypatch: pytest.MonkeyPatch,
+    workspaces: list[str],
 ) -> None:
-    ctx = _deploy_ctx(all_workspaces=False, workspaces=["alpha", "zeta"])
+    ctx = _deploy_ctx(all_workspaces=False, workspaces=workspaces)
     resolved = _resolved_config()
-    selected = [
-        make_workspace("alpha", "/alpha"),
-        make_workspace("zeta", "/zeta"),
-    ]
+    selected = [make_workspace(name, f"/{name}") for name in workspaces]
 
     select_workspaces_mock = create_autospec(
         mainmod.select_workspaces, return_value=selected
@@ -129,7 +156,7 @@ def test_main_dispatches_deploy_selected_workspaces(
 
     mainmod.main()
 
-    select_workspaces_mock.assert_called_once_with(resolved, ["alpha", "zeta"])
+    select_workspaces_mock.assert_called_once_with(resolved, workspaces)
     assert run_deploy_mock.call_count == 1
 
 

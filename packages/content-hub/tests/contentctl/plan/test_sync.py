@@ -69,7 +69,18 @@ def test_plan_sync_applies_include_exclude() -> None:
     assert paths == {"guide.txt"}
 
 
-def test_plan_sync_file_source_replaces() -> None:
+@pytest.mark.parametrize(
+    ("source_exclude", "expected_count", "expected_action"),
+    [
+        ((), 1, SyncAction.REPLACE),
+        (("*.txt",), 0, None),
+    ],
+)
+def test_plan_sync_file_source(
+    source_exclude: tuple[str, ...],
+    expected_count: int,
+    expected_action: SyncAction | None,
+) -> None:
     source_root = fixture_path("plan_sync", "source_single")
     destination_root = fixture_path("plan_sync", "destination_single")
 
@@ -82,46 +93,50 @@ def test_plan_sync_file_source_replaces() -> None:
         source_path=source_path,
         destination_path=destination_path,
         source_include=(),
-        source_exclude=(),
+        source_exclude=source_exclude,
         destination_include=(),
         destination_exclude=(),
         **_plan_semaphores(),
     )
 
     collected = _collect_operations(operations)
-    assert len(collected) == 1
-    op = collected[0]
-    assert op.relative == Path("note.txt")
-    assert op.action is SyncAction.REPLACE
+    assert len(collected) == expected_count
+    if expected_count > 0:
+        op = collected[0]
+        assert op.relative == Path("note.txt")
+        assert op.action is expected_action
 
 
-def test_plan_sync_file_source_excluded() -> None:
-    source_root = fixture_path("plan_sync", "source_single")
-    destination_root = fixture_path("plan_sync", "destination_single")
-
-    source_path, destination_path = resolve_sync_paths(
-        source_root=source_root,
-        destination_root=destination_root,
-        path="note.txt",
-    )
-    operations = plan_sync(
-        source_path=source_path,
-        destination_path=destination_path,
-        source_include=(),
-        source_exclude=("*.txt",),
-        destination_include=(),
-        destination_exclude=(),
-        **_plan_semaphores(),
-    )
-
-    collected = _collect_operations(operations)
-    assert collected == []
-
-
-def test_plan_sync_reports_destination_skips() -> None:
+@pytest.mark.parametrize(
+    ("destination_include", "destination_exclude", "expected_actions"),
+    [
+        (
+            ("*.txt", "**/*.txt"),
+            ("sub/*",),
+            {
+                "guide.txt": SyncAction.COPY,
+                "readme.md": SyncAction.SKIP,
+                "sub/chapter.txt": SyncAction.SKIP,
+            },
+        ),
+        (
+            (),
+            ("*.txt", "**/*.txt"),
+            {
+                "guide.txt": SyncAction.SKIP,
+                "sub/chapter.txt": SyncAction.SKIP,
+                "readme.md": SyncAction.COPY,
+            },
+        ),
+    ],
+)
+def test_plan_sync_destination_filtering(
+    destination_include: tuple[str, ...],
+    destination_exclude: tuple[str, ...],
+    expected_actions: dict[str, SyncAction],
+) -> None:
     source_root = fixture_path("plan_sync", "source_dir")
     destination_root = fixture_path("plan_sync", "destination_single")
-
     source_path, destination_path = resolve_sync_paths(
         source_root=source_root,
         destination_root=destination_root,
@@ -132,16 +147,15 @@ def test_plan_sync_reports_destination_skips() -> None:
         destination_path=destination_path,
         source_include=(),
         source_exclude=(),
-        destination_include=("*.txt", "**/*.txt"),
-        destination_exclude=("sub/*",),
+        destination_include=destination_include,
+        destination_exclude=destination_exclude,
         **_plan_semaphores(),
     )
 
     actions = {str(op.relative): op.action for op in _collect_operations(operations)}
 
-    assert actions["guide.txt"] is SyncAction.COPY
-    assert actions["readme.md"] is SyncAction.SKIP
-    assert actions["sub/chapter.txt"] is SyncAction.SKIP
+    for file, expected_action in expected_actions.items():
+        assert actions[file] is expected_action
 
 
 @pytest.mark.parametrize(
@@ -163,31 +177,6 @@ def test_resolve_sync_paths_rejects_overlapping_paths(
             destination_root=fixture_path("plan_sync", destination_root),
             path=path,
         )
-
-
-def test_plan_sync_file_destination_exclude_marks_skip() -> None:
-    source_root = fixture_path("plan_sync", "source_dir")
-    destination_root = fixture_path("plan_sync", "destination_single")
-    source_path, destination_path = resolve_sync_paths(
-        source_root=source_root,
-        destination_root=destination_root,
-        path=".",
-    )
-    operations = plan_sync(
-        source_path=source_path,
-        destination_path=destination_path,
-        source_include=(),
-        source_exclude=(),
-        destination_include=(),
-        destination_exclude=("*.txt", "**/*.txt"),
-        **_plan_semaphores(),
-    )
-
-    collected = _collect_operations(operations)
-    actions = {str(op.relative): op.action for op in collected}
-    assert actions["guide.txt"] is SyncAction.SKIP
-    assert actions["sub/chapter.txt"] is SyncAction.SKIP
-    assert actions["readme.md"] is SyncAction.COPY
 
 
 def _plan_semaphores() -> dict[str, asyncio.Semaphore]:

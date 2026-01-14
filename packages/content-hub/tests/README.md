@@ -1,71 +1,78 @@
 # Tests: Scope and Responsibilities
 
-This test suite is guided by a small set of principles:
-
-- **Layering**: test boundaries, not internal details
-- **Environment**: no filesystem writes, fixtures for reads
-- **Responsibilities**: comprehensive at submodule level, orchestration only at higher levels
-- **Design**: test contracts, not implementation
-- **Coverage**: driven by module responsibilities, not line counts
+This test suite emphasizes layered testing, contract validation, and responsibility-driven coverage.
 
 ## Layering Principles
 
-- Submodules test behavior and boundaries.
-- Higher-level modules test connectivity and contracts, not internal detail.
-- Avoid duplicate assertions across layers.
+Test at boundaries, not through layers:
 
-## Test Environment Constraints
+- **Submodules** test behavior comprehensively—rules, edge cases, data transformations
+- **Higher-level modules** test orchestration only—which calls happen, what data passes through
+- **Avoid duplicate assertions** across layers; defer detailed logic testing to submodules
 
-- Tests should not write to the filesystem; reading files is allowed via fixtures in `tests/_fixtures`.
+## Test Environment
+
+**No filesystem writes.** Tests read from fixtures in `tests/_fixtures` but must not write to disk. Use `monkeypatch` to observe side effects without real I/O.
 
 ## Responsibilities by Layer
 
 ### Submodules
 
-Focus on rules, edge cases, and data transformations. These tests should be
-comprehensive for their module and act as the primary specification of
-behavior.
+Comprehensive testing of module behavior:
+
+- Rules and edge cases
+- Data transformations and validations
+- Boundary conditions
+- Error handling
+
+These tests document the module's contract.
 
 ### Higher-level Modules
 
-Focus on orchestration only. Assertions should be about:
+Test orchestration contracts:
 
-- which calls happen
-- what data is passed through
-- what summary output or error mapping is produced
+- **Call patterns**: which functions are invoked, in what order
+- **Data flow**: what arguments are passed through
+- **Output mapping**: how results are summarized or errors are reported
 
-Do not re-test submodule logic here.
+Defer detailed logic testing to submodule tests.
 
 ## Test Design Guidance
 
+### Parametrized Tests
+
+Use `@pytest.mark.parametrize` to **separate data from logic**—declare which values are variables, which parts are invariant test structure.
+
+Parametrization makes the test's variable dimensions explicit in the signature. When you see `@pytest.mark.parametrize("verbose", [True])`, you immediately know `verbose` is a design parameter the test depends on, not a hardcoded constant. The test body becomes the invariant framework; the parameter list becomes the variable data.
+
+**When to use**:
+
+- Making variable dimensions explicit (flags, modes, orderings, path variations)
+- Covering boundary conditions or domain samples (empty lists, single items, multiple items)
+- Showing how outputs vary predictably with inputs
+
 ### Fixtures and Mocking
 
-- If a test needs prepared files, use fixtures in `tests/_fixtures`.
-- If a test needs to observe side effects, use `monkeypatch` to avoid real I/O.
+- Use fixtures in `tests/_fixtures` for prepared file inputs
+- Use `monkeypatch` to intercept side effects and avoid real I/O
 
-### Test Scope and Focus
+### Test Scope
 
-- Prefer tests that express contract intent over incidental implementation.
-- Avoid tests that reach into private helpers or module internals; test the public API behavior instead.
-- Avoid asserting third-party tool details (e.g., schema validator error text) unless that output is an explicit contract.
-- Favor minimal surface-area tests for error handling: check error type and high-level message intent.
-- When behavior is unclear, confirm the expected contract before adding tests.
+Express **contract intent**, not incidental implementation:
+
+- **Test public APIs**, not private helpers or module internals
+- **Avoid asserting third-party tool output** (e.g., validator error text) unless it's an explicit contract
+- **Keep error tests minimal**: verify error type and high-level message intent
+- **Confirm contracts before testing**: when behavior is unclear, clarify the expected contract first
 
 ## Coverage Intent
 
-Coverage is driven by module responsibilities. Missing tests are addressed when
-they represent a missing contract, not just an uncovered line. Tests should
-reinforce module boundaries rather than mirror implementation details.
+**Coverage follows module responsibilities.** Add tests when they represent missing contracts, not uncovered lines. Reinforce boundaries, not implementation.
 
 ### Modules Outside Test Scope
 
-Certain module categories are intentionally excluded from direct testing:
+Some modules are intentionally excluded from direct testing:
 
-- **`*_kit` modules**: Lightweight adapter or composition layers that wrap existing
-  functionality. Their behavior is validated indirectly through integration scenarios
-  in higher-level tests.
+**`*_kit` modules**: Lightweight adapters or composition layers. Validated indirectly through integration tests of higher-level modules.
 
-- **`utils` modules**: General-purpose utility functions with narrow responsibilities.
-  These are implicitly covered by tests of the modules that depend on them. Direct
-  testing would duplicate assertions and increase maintenance cost without adding
-  contract clarity.
+**`utils` modules**: General-purpose utilities with narrow responsibilities. Implicitly covered by tests of dependent modules. Direct testing would duplicate assertions without clarifying contracts.

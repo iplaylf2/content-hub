@@ -15,15 +15,23 @@ from contentctl.operations.adopt import run_adopt
 from contentctl.plan.sync import SyncAction, SyncOperation
 
 
+@pytest.mark.parametrize(
+    ("dry_run", "verbose"),
+    [
+        (True, True),
+    ],
+)
 def test_run_adopt_applies_plan(
     monkeypatch: pytest.MonkeyPatch,
+    dry_run: bool,
+    verbose: bool,
 ) -> None:
     executed: list[tuple[bool, bool]] = []
 
     async def record_execute(*args: object, **kwargs: object) -> int:
-        dry_run = kwargs.get("dry_run")
-        verbose = kwargs.get("verbose")
-        executed.append((bool(dry_run), bool(verbose)))
+        dr = kwargs.get("dry_run")
+        vb = kwargs.get("verbose")
+        executed.append((bool(dr), bool(vb)))
         operation_name = kwargs.get("operation_name", "")
         workspace_name = kwargs.get("workspace_name", "")
         output = kwargs.get("output")
@@ -50,8 +58,8 @@ def test_run_adopt_applies_plan(
             workspace=make_workspace("docs", "/ws"),
             origin=ORIGIN,
             path=DEFAULT_PATH,
-            dry_run=False,
-            verbose=False,
+            dry_run=dry_run,
+            verbose=verbose,
             output=output,
         )
     )
@@ -60,7 +68,7 @@ def test_run_adopt_applies_plan(
     assert "adopt docs:" in text
     assert "1 files copied" in text
     assert len(executed) == 1
-    assert executed[0] == (False, False)
+    assert executed[0] == (dry_run, verbose)
 
 
 def _fake_stream() -> AsyncIterator[SyncOperation]:

@@ -14,16 +14,39 @@ from contentctl.config import (
 from tests.contentctl.fixtures import fixture_path
 
 
-def test_resolve_config_paths_and_patterns() -> None:
-    config_path = fixture_path("resolver_defaults.yaml")
+@pytest.mark.parametrize(
+    ("fixture_name", "expected_origin_include", "expected_origin_exclude"),
+    [
+        ("resolver_defaults.yaml", ("src/**", "docs/**"), ("build/**",)),
+        (
+            "resolver_patterns.yaml",
+            ("docs/**", "assets/**", "origin/**"),
+            ("build/**",),
+        ),
+    ],
+)
+def test_resolve_config_origin_patterns(
+    fixture_name: str,
+    expected_origin_include: tuple[str, ...],
+    expected_origin_exclude: tuple[str, ...],
+) -> None:
+    config_path = fixture_path(fixture_name)
     config = _load_fixture(config_path)
     base_dir = config_path.parent
 
     resolved = resolve_config(config, config_path)
 
     assert resolved.origin.path == (base_dir / "origin").resolve()
-    assert resolved.origin.include == ("src/**", "docs/**")
-    assert resolved.origin.exclude == ("build/**",)
+    assert resolved.origin.include == expected_origin_include
+    assert resolved.origin.exclude == expected_origin_exclude
+
+
+def test_resolve_config_workspace_patterns_defaults() -> None:
+    config_path = fixture_path("resolver_defaults.yaml")
+    config = _load_fixture(config_path)
+    base_dir = config_path.parent
+
+    resolved = resolve_config(config, config_path)
 
     docs = resolved.workspaces["docs"]
     assert docs.path == (base_dir / "docs").resolve()
@@ -33,6 +56,21 @@ def test_resolve_config_paths_and_patterns() -> None:
     assets = resolved.workspaces["assets"]
     assert assets.path == (base_dir / "assets").resolve()
     assert assets.include == ("src/**", "docs/**")
+    assert assets.exclude == ("build/**",)
+
+
+def test_resolve_config_workspace_patterns_normalized() -> None:
+    config_path = fixture_path("resolver_patterns.yaml")
+    config = _load_fixture(config_path)
+
+    resolved = resolve_config(config, config_path)
+
+    site = resolved.workspaces["site"]
+    assert site.include == ("docs/**", "assets/**", "site/**")
+    assert site.exclude == ("build/**", "site/tmp/**")
+
+    assets = resolved.workspaces["assets"]
+    assert assets.include == ("docs/**", "assets/**")
     assert assets.exclude == ("build/**",)
 
 
@@ -53,32 +91,6 @@ def test_select_workspaces_unknown() -> None:
 
     with pytest.raises(ConfigError):
         select_workspaces(resolved, ["missing"])
-
-
-def test_resolve_config_normalizes_patterns() -> None:
-    config_path = fixture_path("resolver_patterns.yaml")
-    config = _load_fixture(config_path)
-
-    resolved = resolve_config(config, config_path)
-
-    assert resolved.origin.include == (
-        "docs/**",
-        "assets/**",
-        "origin/**",
-    )
-    assert resolved.origin.exclude == ("build/**",)
-
-    site = resolved.workspaces["site"]
-    assert site.include == (
-        "docs/**",
-        "assets/**",
-        "site/**",
-    )
-    assert site.exclude == ("build/**", "site/tmp/**")
-
-    assets = resolved.workspaces["assets"]
-    assert assets.include == ("docs/**", "assets/**")
-    assert assets.exclude == ("build/**",)
 
 
 def _load_fixture(path: Path) -> dict[str, object]:
