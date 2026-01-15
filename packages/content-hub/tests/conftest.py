@@ -11,6 +11,6 @@ def _prepend_sys_path(path: Path) -> None:
         sys.path.insert(0, path_str)
 
 
-_prepend_sys_path(TESTS_ROOT)
 _prepend_sys_path(PACKAGE_ROOT)
 _prepend_sys_path(SRC_ROOT)
+_prepend_sys_path(TESTS_ROOT)

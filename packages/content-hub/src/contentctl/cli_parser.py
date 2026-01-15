@@ -40,6 +40,17 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
                 dry_run=args.dry_run,
                 verbose=args.verbose,
             )
+        case "init":
+            init_path = Path(args.path)
+            if not init_path.is_absolute():
+                init_path = cwd / init_path
+            return InitContext(
+                command="init",
+                config_path=config_path,
+                path=init_path.resolve(),
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+            )
         case _:
             parser.error(f"Unknown command: {args.command}")
 
@@ -66,7 +77,13 @@ class AdoptContext(BaseContext):
     path: str
 
 
-CliContext = DeployContext | AdoptContext
+@dataclass(frozen=True)
+class InitContext(BaseContext):
+    command: Literal["init"]
+    path: Path
+
+
+CliContext = DeployContext | AdoptContext | InitContext
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -95,6 +112,7 @@ def _build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
     _add_deploy_parser(subparsers.add_parser)
     _add_adopt_parser(subparsers.add_parser)
+    _add_init_parser(subparsers.add_parser)
     return parser
 
 
@@ -171,4 +189,19 @@ def _add_path_arg(parser: argparse.ArgumentParser) -> None:
         "--path",
         default=".",
         help="Relative path applied to both origin and workspace (default: '.').",
+    )
+
+
+def _add_init_parser(
+    add_parser: Callable[..., argparse.ArgumentParser],
+) -> None:
+    parser = add_parser(
+        "init",
+        help="Create a new content-hub.yaml config file.",
+    )
+    parser.add_argument(
+        "path",
+        nargs="?",
+        default=".",
+        help="Directory where content-hub.yaml will be created (default: '.').",
     )

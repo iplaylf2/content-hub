@@ -16,20 +16,25 @@ Requires Python 3.14+.
 pip install content-hub
 ```
 
-Create `content-hub.yaml` in your project root:
-
-```yaml
-origin: ./origin
-workspaces:
-  docs: ./workspaces/docs
-  assets: ./workspaces/assets
-```
-
-Run content flows:
+Initialize a new project:
 
 ```bash
-contentctl deploy docs
-contentctl adopt docs
+contentctl init
+```
+
+This creates `content-hub.yaml`:
+
+```yaml
+origin: origin
+workspaces:
+  docs: ./docs
+```
+
+Edit it to define your content flow. Run content flows:
+
+```bash
+contentctl deploy docs    # copy origin → workspace
+contentctl adopt docs     # copy workspace → origin
 ```
 
 ## Config Notes

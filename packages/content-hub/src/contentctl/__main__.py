@@ -2,7 +2,7 @@ import sys
 import asyncio
 from pathlib import Path
 
-from .cli_parser import AdoptContext, DeployContext, parse_cli
+from .cli_parser import AdoptContext, DeployContext, InitContext, parse_cli
 from .config import (
     ConfigError,
     ResolvedConfig,
@@ -11,11 +11,25 @@ from .config import (
     select_all_workspaces,
     select_workspaces,
 )
-from .operations import SyncError, run_adopt, run_deploy
+from .operations import SyncError, run_adopt, run_deploy, run_init
 
 
 def main() -> None:
     ctx = parse_cli(sys.argv[1:], Path.cwd())
+
+    # Init command doesn't require existing config
+    if isinstance(ctx, InitContext):
+        try:
+            run_init(
+                path=ctx.path,
+                dry_run=ctx.dry_run,
+                verbose=ctx.verbose,
+                output=sys.stdout,
+            )
+        except (ConfigError, FileExistsError) as exc:
+            print(str(exc), file=sys.stderr)
+            sys.exit(1)
+        return
 
     try:
         raw_config = load_config(ctx.config_path)
