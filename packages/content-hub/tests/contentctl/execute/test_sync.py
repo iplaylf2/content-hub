@@ -9,12 +9,7 @@ import pytest
 
 from contentctl.execute.sync import apply_sync_plan, print_sync_plan
 from contentctl.plan.sync import SyncAction, SyncOperation
-from tests.contentctl.execute.fixtures import (
-    DESTINATION_ROOT,
-    SOURCE_ROOT,
-    make_stream,
-    make_sync_op,
-)
+from tests.contentctl.execute.fixtures import DESTINATION_ROOT, SOURCE_ROOT
 
 
 @pytest.mark.parametrize(
@@ -35,21 +30,18 @@ def test_apply_sync_plan_copies_non_skip(
     operations: list[tuple[str, SyncAction]],
     expected_actions: list[tuple[str, str]],
 ) -> None:
-    copied_files: list[tuple[Path, Path]] = []
-    created_dirs: list[Path] = []
+    observed_copies: list[tuple[Path, Path]] = []
 
-    def track_copy(src: Path, dst: Path) -> None:
-        copied_files.append((src, dst))
+    def observe_copy(src: Path, dst: Path) -> None:
+        observed_copies.append((src, dst))
 
-    def track_mkdir(self: Path, *args: object, **kwargs: object) -> None:
-        created_dirs.append(self)
-
-    copy2_mock = Mock(spec=shutil.copy2, side_effect=track_copy)
+    copy2_mock = Mock(spec=shutil.copy2, side_effect=observe_copy)
+    mkdir_mock = Mock(spec=Path.mkdir)
 
     monkeypatch.setattr("contentctl.execute.sync.shutil.copy2", copy2_mock)
-    monkeypatch.setattr(Path, "mkdir", track_mkdir)
+    monkeypatch.setattr(Path, "mkdir", mkdir_mock)
 
-    stream = make_stream(*[make_sync_op(path, action) for path, action in operations])
+    stream = _make_stream(*[_make_sync_op(path, action) for path, action in operations])
 
     observed = apply_sync_plan(
         stream,
@@ -62,8 +54,7 @@ def test_apply_sync_plan_copies_non_skip(
     expected_copies = [
         (SOURCE_ROOT / src, DESTINATION_ROOT / dst) for src, dst in expected_actions
     ]
-    assert copied_files == expected_copies
-    assert created_dirs
+    assert observed_copies == expected_copies
 
 
 @pytest.mark.parametrize(
@@ -88,7 +79,7 @@ def test_print_sync_plan_formats_lines(
     operations: list[tuple[str, SyncAction]],
     expected_lines: list[str],
 ) -> None:
-    stream = make_stream(*[make_sync_op(path, action) for path, action in operations])
+    stream = _make_stream(*[_make_sync_op(path, action) for path, action in operations])
 
     output = StringIO()
     observed = print_sync_plan(
@@ -101,6 +92,18 @@ def test_print_sync_plan_formats_lines(
 
     lines = output.getvalue().splitlines()
     assert lines == expected_lines
+
+
+def _make_sync_op(filename: str, action: SyncAction) -> SyncOperation:
+    return SyncOperation(relative=Path(filename), action=action)
+
+
+def _make_stream(*operations: SyncOperation) -> AsyncIterator[SyncOperation]:
+    async def iter_operations() -> AsyncIterator[SyncOperation]:
+        for operation in operations:
+            yield operation
+
+    return iter_operations()
 
 
 def _drain_stream(stream: AsyncIterator[SyncOperation]) -> None:

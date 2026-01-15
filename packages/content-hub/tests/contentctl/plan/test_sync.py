@@ -9,6 +9,10 @@ from tests.contentctl.fixtures import fixture_path
 from contentctl.plan.sync import SyncOperation
 
 
+def make_sync_op(filename: str, action: SyncAction) -> SyncOperation:
+    return SyncOperation(relative=Path(filename), action=action)
+
+
 @pytest.mark.parametrize(
     "path",
     [
@@ -98,11 +102,12 @@ def test_plan_sync_file_source(
     )
 
     collected = _collect_operations(operations)
-    assert len(collected) == expected_count
     if expected_count > 0:
-        op = collected[0]
-        assert op.relative == Path("note.txt")
-        assert op.action is expected_action
+        assert expected_action is not None
+        expected = [make_sync_op("note.txt", expected_action)]
+        assert collected == expected
+    else:
+        assert collected == []
 
 
 @pytest.mark.parametrize(

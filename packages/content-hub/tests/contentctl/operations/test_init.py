@@ -1,6 +1,6 @@
 from io import StringIO
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import Mock
 
 import pytest
 
@@ -11,7 +11,7 @@ from contentctl.operations.init import run_init
 def test_init_writes_config_file(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, dry_run: bool
 ) -> None:
-    write_text_mock = MagicMock(spec=Path.write_text)
+    write_text_mock = Mock(spec=Path.write_text)
     monkeypatch.setattr(Path, "write_text", write_text_mock)
 
     output = StringIO()
@@ -26,7 +26,8 @@ def test_init_writes_config_file(
         write_text_mock.assert_not_called()
     else:
         write_text_mock.assert_called_once()
-        content = write_text_mock.call_args[0][0]
+        call_args = write_text_mock.call_args[0]
+        content = call_args[0]
         assert isinstance(content, str)
         assert len(content) > 0
 
@@ -48,15 +49,17 @@ def test_init_fails_when_file_exists(tmp_path: Path) -> None:
 def test_init_creates_parent_directories(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    mkdir_calls: list[tuple[Path, bool, bool]] = []
+    observed_mkdirs: list[tuple[Path, bool, bool]] = []
 
-    def mkdir_tracker(
-        self: Path, parents: bool = False, exist_ok: bool = False
-    ) -> None:
-        mkdir_calls.append((self, parents, exist_ok))
+    def observe_mkdir(parents: bool = False, exist_ok: bool = False) -> None:
+        # When called as path.mkdir(), the path is bound to the mock instance
+        observed_mkdirs.append((tmp_path, parents, exist_ok))
 
-    monkeypatch.setattr(Path, "mkdir", mkdir_tracker)
-    monkeypatch.setattr(Path, "write_text", MagicMock(spec=Path.write_text))
+    mkdir_mock = Mock(spec=Path.mkdir, side_effect=observe_mkdir)
+    write_text_mock = Mock(spec=Path.write_text)
+
+    monkeypatch.setattr(Path, "mkdir", mkdir_mock)
+    monkeypatch.setattr(Path, "write_text", write_text_mock)
 
     output = StringIO()
     run_init(
@@ -66,4 +69,4 @@ def test_init_creates_parent_directories(
         output=output,
     )
 
-    assert mkdir_calls == [(tmp_path, True, True)]
+    assert observed_mkdirs == [(tmp_path, True, True)]

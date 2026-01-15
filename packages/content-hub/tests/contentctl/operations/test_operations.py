@@ -30,15 +30,21 @@ def test_run_adopt_applies_plan(
 ) -> None:
     execute_calls: list[tuple[bool, bool]] = []
 
-    async def record_execute(*args: object, **kwargs: object) -> int:
+    async def observe_execute(*args: object, **kwargs: object) -> int:
         execute_calls.append((bool(kwargs.get("dry_run")), bool(kwargs.get("verbose"))))
         if output := kwargs.get("output"):
-            operation = kwargs.get("operation_name", "")
-            workspace = kwargs.get("workspace_name", "")
+            operation_name = kwargs.get("operation_name", "")
+            workspace_name = kwargs.get("workspace_name", "")
             print(
-                f"{operation} {workspace}: 1 files copied", file=cast("TextIO", output)
+                f"{operation_name} {workspace_name}: 1 files copied",
+                file=cast("TextIO", output),
             )
         return 1
+
+    execute_mock = create_autospec(
+        adopt_mod.execute_sync_operation,
+        side_effect=observe_execute,
+    )
 
     def plan_sync_side_effect(
         *_args: object,
@@ -66,7 +72,7 @@ def test_run_adopt_applies_plan(
 
     monkeypatch.setattr(adopt_mod, "resolve_sync_paths", resolve_sync_paths_mock)
     monkeypatch.setattr(adopt_mod, "plan_sync", plan_sync_mock)
-    monkeypatch.setattr(adopt_mod, "execute_sync_operation", record_execute)
+    monkeypatch.setattr(adopt_mod, "execute_sync_operation", execute_mock)
 
     output = StringIO()
     asyncio.run(
