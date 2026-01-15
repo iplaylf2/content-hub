@@ -10,58 +10,66 @@ Test at boundaries, not through layers:
 
 **Higher-level modules** test orchestration only—call patterns, data flow, output mapping. Defer detailed logic testing to submodules.
 
-## Test Environment
-
-**No filesystem writes.** Tests read from fixtures in `tests/_fixtures` but must not write to disk. Use `monkeypatch` to observe side effects without real I/O.
-
 ## Writing Clear Tests
 
-### Parametrized Tests
+### Test Data
 
-Use `@pytest.mark.parametrize` to **separate data from logic**—make variable dimensions explicit in the signature, keep test structure invariant.
+Tests read from fixtures in `tests/_fixtures` but never write to disk. Use `monkeypatch` to observe side effects without real I/O.
 
-**Parametrize based on intent, not data quantity.** The goal is declaring what varies in your test, not reducing code. Even a single value can be parametrized if it represents a design dimension.
-
-### Fixtures and Test Data
-
-- Use fixtures in `tests/_fixtures` for prepared file inputs
-- Keep test data close to the test—inline small data, factor out large or reusable datasets
+- Keep test data close to tests. Inline small data, factor out large or reusable datasets
 - Prefer explicit construction over complex fixture chains
+
+### Parametrization
+
+Use `@pytest.mark.parametrize` to express variation through parameters while keeping test logic invariant.
+
+**One test, one contract.** Parameters enumerate conditions over which the contract holds—parametrize by intent, not volume. Even single values can be parameters if they represent design axes.
+
+**When to parametrize:**
+
+- Input shape or type variations
+- Boundary conditions
+- Configuration modes
+- Different inputs yielding equivalent outcomes
+
+**When to write separate tests:**
+
+- Different responsibilities
+- Different contracts
+- Different orchestration paths
 
 ### Mocking and Observation
 
-**Mock construction**:
+Mock external dependencies at system boundaries. Track what matters for the contract—inputs, call order, or specific values.
 
-- **Always use `spec` parameter**: enforce interface contracts with `Mock(spec=...)` or `create_autospec(...)`
-- **Use `Mock` over `MagicMock`**: unless you need special magic method behavior
-- **Side effects when observing**: use `side_effect` only when tracking calls or implementing custom behavior
-- **Direct mocks when stubbing**: if you don't need to observe, omit `side_effect`
+**Mock construction:**
 
-**Naming and assertions**:
+- Always use `spec` parameter to enforce interface contracts with `Mock(spec=...)` or `create_autospec(...)`
+- Use `Mock` over `MagicMock` unless you need special magic method behavior
+- Use `side_effect` only when tracking calls or implementing custom behavior
+- If you don't need to observe, omit `side_effect`
 
-- **Name by intent**: `observed_copies` not `copy_calls`
-- **Name observers descriptively**: `observe_copy` not `copy_side_effect`
-- **Extract repeated access**: avoid multiple `mock.call_args.kwargs["key"]` lookups
-- **Use direct comparisons**: `assert calls == [(a, b)]` not multi-step length checks
-- **Prefer semantic assertions**: `mock.assert_called_once()` not manual count checks
+**Naming and assertions:**
 
-**What to mock**: Mock external dependencies at system boundaries. Track what matters for the contract—inputs, call order, or specific values.
+- Name by intent: `observed_copies` not `copy_calls`
+- Name observers descriptively: `observe_copy` not `copy_side_effect`
+- Extract repeated access. Avoid multiple `mock.call_args.kwargs["key"]` lookups
+- Use direct comparisons: `assert calls == [(a, b)]` not multi-step length checks
+- Prefer semantic assertions: `mock.assert_called_once()` not manual count checks
 
 ### Test Scope
 
-Express **contract intent**, not incidental implementation:
+Test the contract, not the implementation:
 
 - Test public APIs, not private helpers or module internals
 - Avoid asserting third-party tool output unless it's an explicit contract
-- Keep error tests minimal—verify error type and high-level message intent
-- Confirm contracts before testing when behavior is unclear
+- Keep error tests minimal. Verify error type and message intent, not exact wording
 
-## Coverage Intent
+### Coverage
 
-**Coverage follows module responsibilities.** Add tests when they represent missing contracts, not uncovered lines.
+Coverage follows module responsibilities. Add tests for missing contracts, not uncovered lines.
 
-### Modules Outside Test Scope
+**Modules outside test scope:**
 
-**`*_kit` modules**: Lightweight adapters validated indirectly through integration tests of higher-level modules.
-
-**`utils` modules**: General-purpose utilities implicitly covered by tests of dependent modules.
+- `*_kit` modules—lightweight adapters validated indirectly through integration tests
+- `utils` modules—general-purpose utilities implicitly covered by dependent module tests
