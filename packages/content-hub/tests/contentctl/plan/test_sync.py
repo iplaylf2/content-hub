@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import AsyncIterator, Callable
 from pathlib import Path
-from typing import Any, TypeAlias
+from typing import Any
 
 import pytest
 
@@ -10,10 +10,8 @@ from contentctl.plan.sync import SyncOperation
 
 from tests.fixture_types import FixturePath
 
-PlanSemaphores: TypeAlias = Callable[[], dict[str, Any]]
-CollectOperations: TypeAlias = Callable[
-    [AsyncIterator[SyncOperation]], list[SyncOperation]
-]
+type PlanSemaphores = Callable[[], dict[str, Any]]
+type CollectOperations = Callable[[AsyncIterator[SyncOperation]], list[SyncOperation]]
 
 
 @pytest.mark.parametrize(
@@ -172,8 +170,8 @@ def test_plan_sync_destination_filtering(
 
     actions = {str(op.relative): op.action for op in collect_operations(operations)}
 
-    for file, expected_action in expected_actions.items():
-        assert actions[file] is expected_action
+    expected = {file: action for file, action in expected_actions.items()}
+    assert {k: v for k, v in actions.items() if k in expected} == expected
 
 
 @pytest.mark.parametrize(
@@ -219,13 +217,3 @@ def collect_operations() -> CollectOperations:
         return asyncio.run(collect())
 
     return _collect
-
-
-@pytest.fixture
-def make_sync_op() -> Callable[[str, SyncAction], SyncOperation]:
-    """Create a SyncOperation for testing."""
-
-    def _make(filename: str, action: SyncAction) -> SyncOperation:
-        return SyncOperation(relative=Path(filename), action=action)
-
-    return _make

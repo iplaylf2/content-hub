@@ -1,6 +1,6 @@
 import asyncio
 import shutil
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from io import StringIO
 from pathlib import Path
 from unittest.mock import create_autospec
@@ -28,6 +28,9 @@ def test_apply_sync_plan_copies_non_skip(
     monkeypatch: pytest.MonkeyPatch,
     source_root: Path,
     destination_root: Path,
+    make_sync_op: Callable[[str, SyncAction], SyncOperation],
+    make_stream: Callable[..., AsyncIterator[SyncOperation]],
+    drain_stream: Callable[[AsyncIterator[SyncOperation]], None],
     operations: list[tuple[str, SyncAction]],
     expected_actions: list[tuple[str, str]],
 ) -> None:
@@ -42,7 +45,7 @@ def test_apply_sync_plan_copies_non_skip(
     monkeypatch.setattr("contentctl.execute.sync.shutil.copy2", copy2_mock)
     monkeypatch.setattr(Path, "mkdir", mkdir_mock)
 
-    stream = _make_stream(*[_make_sync_op(path, action) for path, action in operations])
+    stream = make_stream(*[make_sync_op(path, action) for path, action in operations])
 
     observed = apply_sync_plan(
         stream,
@@ -50,7 +53,7 @@ def test_apply_sync_plan_copies_non_skip(
         destination_root=destination_root,
         semaphore=asyncio.Semaphore(2),
     )
-    _drain_stream(observed)
+    drain_stream(observed)
 
     expected_copies = [
         (source_root / src, destination_root / dst) for src, dst in expected_actions
@@ -79,10 +82,13 @@ def test_apply_sync_plan_copies_non_skip(
 def test_print_sync_plan_formats_lines(
     source_root: Path,
     destination_root: Path,
+    make_sync_op: Callable[[str, SyncAction], SyncOperation],
+    make_stream: Callable[..., AsyncIterator[SyncOperation]],
+    drain_stream: Callable[[AsyncIterator[SyncOperation]], None],
     operations: list[tuple[str, SyncAction]],
     expected_lines: list[str],
 ) -> None:
-    stream = _make_stream(*[_make_sync_op(path, action) for path, action in operations])
+    stream = make_stream(*[make_sync_op(path, action) for path, action in operations])
 
     output = StringIO()
     observed = print_sync_plan(
@@ -91,7 +97,7 @@ def test_print_sync_plan_formats_lines(
         destination_root=destination_root,
         output=output,
     )
-    _drain_stream(observed)
+    drain_stream(observed)
 
     lines = output.getvalue().splitlines()
     assert lines == expected_lines
@@ -109,21 +115,29 @@ def destination_root() -> Path:
     return Path("/virtual/destination")
 
 
-def _make_sync_op(filename: str, action: SyncAction) -> SyncOperation:
-    return SyncOperation(relative=Path(filename), action=action)
+@pytest.fixture
+def make_stream() -> Callable[..., AsyncIterator[SyncOperation]]:
+    """Create an async stream of SyncOperations."""
+
+    def _make(*operations: SyncOperation) -> AsyncIterator[SyncOperation]:
+        async def iter_operations() -> AsyncIterator[SyncOperation]:
+            for operation in operations:
+                yield operation
+
+        return iter_operations()
+
+    return _make
 
 
-def _make_stream(*operations: SyncOperation) -> AsyncIterator[SyncOperation]:
-    async def iter_operations() -> AsyncIterator[SyncOperation]:
-        for operation in operations:
-            yield operation
+@pytest.fixture
+def drain_stream() -> Callable[[AsyncIterator[SyncOperation]], None]:
+    """Drain an async stream to completion."""
 
-    return iter_operations()
+    def _drain(stream: AsyncIterator[SyncOperation]) -> None:
+        async def consume() -> None:
+            async for _ in stream:
+                pass
 
+        asyncio.run(consume())
 
-def _drain_stream(stream: AsyncIterator[SyncOperation]) -> None:
-    async def consume() -> None:
-        async for _ in stream:
-            pass
-
-    asyncio.run(consume())
+    return _drain

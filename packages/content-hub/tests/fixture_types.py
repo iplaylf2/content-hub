@@ -6,6 +6,5 @@ across multiple test modules.
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import TypeAlias
 
-FixturePath: TypeAlias = Callable[..., Path]
+type FixturePath = Callable[..., Path]

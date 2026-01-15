@@ -2,6 +2,6 @@
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, TypeAlias
+from typing import Any
 
-LoadYamlFixture: TypeAlias = Callable[[Path], dict[str, Any]]
+type LoadYamlFixture = Callable[[Path], dict[str, Any]]

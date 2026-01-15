@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from pathlib import Path
-from typing import Protocol, TypeAlias
+from typing import Protocol
 from unittest.mock import AsyncMock, create_autospec
 
 import pytest
@@ -11,8 +11,8 @@ from contentctl.config import ResolvedConfig
 
 from .fixture_types import MakeWorkspace
 
-DeployCtxFactory: TypeAlias = Callable[..., DeployContext]
-AdoptCtxFactory: TypeAlias = Callable[..., AdoptContext]
+type DeployCtxFactory = Callable[..., DeployContext]
+type AdoptCtxFactory = Callable[..., AdoptContext]
 
 
 class PatchMainContext(Protocol):

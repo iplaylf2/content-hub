@@ -12,7 +12,7 @@ from .fixture_types import LoadYamlFixture
 
 
 @pytest.mark.parametrize(
-    ("fixture_name", "expected_origin_include", "expected_origin_exclude"),
+    ("config_file", "expected_origin_include", "expected_origin_exclude"),
     [
         ("resolver_defaults.yaml", ("src/**", "docs/**"), ("build/**",)),
         (
@@ -25,11 +25,11 @@ from .fixture_types import LoadYamlFixture
 def test_resolve_config_origin_patterns(
     fixture_path: FixturePath,
     load_yaml_fixture: LoadYamlFixture,
-    fixture_name: str,
+    config_file: str,
     expected_origin_include: tuple[str, ...],
     expected_origin_exclude: tuple[str, ...],
 ) -> None:
-    config_path = fixture_path(fixture_name)
+    config_path = fixture_path(config_file)
     config = load_yaml_fixture(config_path)
     base_dir = config_path.parent
 
@@ -41,7 +41,7 @@ def test_resolve_config_origin_patterns(
 
 
 @pytest.mark.parametrize(
-    ("fixture_name", "workspace_name", "expected_include", "expected_exclude"),
+    ("config_file", "workspace_name", "expected_include", "expected_exclude"),
     [
         (
             "resolver_defaults.yaml",
@@ -72,12 +72,12 @@ def test_resolve_config_origin_patterns(
 def test_resolve_config_workspace_patterns(
     fixture_path: FixturePath,
     load_yaml_fixture: LoadYamlFixture,
-    fixture_name: str,
+    config_file: str,
     workspace_name: str,
     expected_include: tuple[str, ...],
     expected_exclude: tuple[str, ...],
 ) -> None:
-    config_path = fixture_path(fixture_name)
+    config_path = fixture_path(config_file)
     config = load_yaml_fixture(config_path)
     base_dir = config_path.parent
 
@@ -90,7 +90,7 @@ def test_resolve_config_workspace_patterns(
 
 
 @pytest.mark.parametrize(
-    ("fixture_name", "expected_names"),
+    ("config_file", "expected_names"),
     [
         ("resolver_sort.yaml", ["alpha", "zeta"]),
     ],
@@ -98,10 +98,10 @@ def test_resolve_config_workspace_patterns(
 def test_select_all_workspaces_sorted(
     fixture_path: FixturePath,
     load_yaml_fixture: LoadYamlFixture,
-    fixture_name: str,
+    config_file: str,
     expected_names: list[str],
 ) -> None:
-    config_path = fixture_path(fixture_name)
+    config_path = fixture_path(config_file)
     config = load_yaml_fixture(config_path)
 
     resolved = resolve_config(config, config_path)

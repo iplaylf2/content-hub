@@ -28,11 +28,11 @@ def _check_env_nested_config(config: dict[str, Any], root: str) -> bool:
 
 
 @pytest.mark.parametrize(
-    "fixture_name",
+    "config_file",
     ["config_valid.yaml"],
 )
-def test_load_config_valid(fixture_path: FixturePath, fixture_name: str) -> None:
-    config_path = fixture_path(fixture_name)
+def test_load_config_valid(fixture_path: FixturePath, config_file: str) -> None:
+    config_path = fixture_path(config_file)
 
     config = load_config(config_path)
 
@@ -41,7 +41,7 @@ def test_load_config_valid(fixture_path: FixturePath, fixture_name: str) -> None
 
 
 @pytest.mark.parametrize(
-    ("fixture_name", "env_vars", "env_to_unset", "expected_checks"),
+    ("config_file", "env_vars", "env_to_unset", "expected_checks"),
     [
         (
             "config_env.yaml",
@@ -61,7 +61,7 @@ def test_load_config_env_substitution(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     fixture_path: FixturePath,
-    fixture_name: str,
+    config_file: str,
     env_vars: dict[str, str],
     env_to_unset: list[str],
     expected_checks: Callable[[dict[str, Any], str], bool],
@@ -70,7 +70,7 @@ def test_load_config_env_substitution(
         monkeypatch.setenv(key, str(tmp_path / value))
     for env_var in env_to_unset:
         monkeypatch.delenv(env_var, raising=False)
-    config_path = fixture_path(fixture_name)
+    config_path = fixture_path(config_file)
 
     config = load_config(config_path)
 
@@ -79,18 +79,18 @@ def test_load_config_env_substitution(
 
 
 @pytest.mark.parametrize(
-    "filename",
+    "config_file",
     ["missing.yaml"],
 )
-def test_load_config_rejects_missing_file(tmp_path: Path, filename: str) -> None:
-    config_path = tmp_path / filename
+def test_load_config_rejects_missing_file(tmp_path: Path, config_file: str) -> None:
+    config_path = tmp_path / config_file
 
     with pytest.raises(ConfigError):
         load_config(config_path)
 
 
 @pytest.mark.parametrize(
-    "fixture",
+    "config_file",
     [
         "config_empty.yaml",
         "config_invalid_yaml.yaml",
@@ -98,8 +98,8 @@ def test_load_config_rejects_missing_file(tmp_path: Path, filename: str) -> None
         "config_schema_error.yaml",
     ],
 )
-def test_load_config_invalid_files(fixture_path: FixturePath, fixture: str) -> None:
-    config_path = fixture_path(fixture)
+def test_load_config_invalid_files(fixture_path: FixturePath, config_file: str) -> None:
+    config_path = fixture_path(config_file)
 
     with pytest.raises(ConfigError):
         load_config(config_path)
