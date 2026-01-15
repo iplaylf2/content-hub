@@ -2,6 +2,7 @@ import asyncio
 from collections.abc import AsyncIterator
 from io import StringIO
 from pathlib import Path
+from typing import TextIO, cast
 from unittest.mock import create_autospec
 
 import pytest
@@ -27,21 +28,15 @@ def test_run_adopt_applies_plan(
     dry_run: bool,
     verbose: bool,
 ) -> None:
-    executed: list[tuple[bool, bool]] = []
+    execute_calls: list[tuple[bool, bool]] = []
 
     async def record_execute(*args: object, **kwargs: object) -> int:
-        dr = kwargs.get("dry_run")
-        vb = kwargs.get("verbose")
-        executed.append((bool(dr), bool(vb)))
-        operation_name = kwargs.get("operation_name", "")
-        workspace_name = kwargs.get("workspace_name", "")
-        output = kwargs.get("output")
-        if output and hasattr(output, "write"):
-            from typing import cast, TextIO
-
+        execute_calls.append((bool(kwargs.get("dry_run")), bool(kwargs.get("verbose"))))
+        if output := kwargs.get("output"):
+            operation = kwargs.get("operation_name", "")
+            workspace = kwargs.get("workspace_name", "")
             print(
-                f"{operation_name} {workspace_name}: 1 files copied",
-                file=cast(TextIO, output),
+                f"{operation} {workspace}: 1 files copied", file=cast("TextIO", output)
             )
         return 1
 
@@ -88,8 +83,7 @@ def test_run_adopt_applies_plan(
     text = output.getvalue()
     assert "adopt docs:" in text
     assert "1 files copied" in text
-    assert len(executed) == 1
-    assert executed[0] == (dry_run, verbose)
+    assert execute_calls == [(dry_run, verbose)]
 
 
 ORIGIN = Workspace(name="", path=Path("/origin"), include=(), exclude=())

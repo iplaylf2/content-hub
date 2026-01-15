@@ -35,19 +35,19 @@ def test_apply_sync_plan_copies_non_skip(
     operations: list[tuple[str, SyncAction]],
     expected_actions: list[tuple[str, str]],
 ) -> None:
-    copy_calls: list[tuple[Path, Path]] = []
-    mkdir_calls: list[Path] = []
+    copied_files: list[tuple[Path, Path]] = []
+    created_dirs: list[Path] = []
 
-    def copy2_side_effect(src: Path, dst: Path) -> None:
-        copy_calls.append((src, dst))
+    def track_copy(src: Path, dst: Path) -> None:
+        copied_files.append((src, dst))
 
-    def mkdir_tracker(self: Path, *args: object, **kwargs: object) -> None:
-        mkdir_calls.append(self)
+    def track_mkdir(self: Path, *args: object, **kwargs: object) -> None:
+        created_dirs.append(self)
 
-    copy2_mock = Mock(spec=shutil.copy2, side_effect=copy2_side_effect)
+    copy2_mock = Mock(spec=shutil.copy2, side_effect=track_copy)
 
     monkeypatch.setattr("contentctl.execute.sync.shutil.copy2", copy2_mock)
-    monkeypatch.setattr(Path, "mkdir", mkdir_tracker)
+    monkeypatch.setattr(Path, "mkdir", track_mkdir)
 
     stream = make_stream(*[make_sync_op(path, action) for path, action in operations])
 
@@ -59,10 +59,11 @@ def test_apply_sync_plan_copies_non_skip(
     )
     _drain_stream(observed)
 
-    assert copy_calls == [
+    expected_copies = [
         (SOURCE_ROOT / src, DESTINATION_ROOT / dst) for src, dst in expected_actions
     ]
-    assert mkdir_calls
+    assert copied_files == expected_copies
+    assert created_dirs
 
 
 @pytest.mark.parametrize(

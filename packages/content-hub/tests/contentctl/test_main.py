@@ -128,8 +128,9 @@ def test_main_dispatches_deploy_all_workspaces(
     mainmod.main()
 
     run_deploy_mock.assert_called_once()
-    assert "workspaces" in run_deploy_mock.call_args.kwargs
-    assert run_deploy_mock.call_args.kwargs["verbose"] is verbose
+    call_kwargs = run_deploy_mock.call_args.kwargs
+    assert "workspaces" in call_kwargs
+    assert call_kwargs["verbose"] is verbose
 
 
 @pytest.mark.parametrize(
@@ -162,7 +163,7 @@ def test_main_dispatches_deploy_selected_workspaces(
     mainmod.main()
 
     select_workspaces_mock.assert_called_once_with(resolved, workspaces)
-    assert run_deploy_mock.call_count == 1
+    run_deploy_mock.assert_called_once()
 
 
 @pytest.mark.parametrize(
@@ -188,9 +189,10 @@ def test_main_dispatches_adopt_workspace(
     mainmod.main()
 
     run_adopt_mock.assert_called_once()
-    assert "workspace" in run_adopt_mock.call_args.kwargs
-    assert run_adopt_mock.call_args.kwargs["dry_run"] is dry_run
-    assert run_adopt_mock.call_args.kwargs["verbose"] is verbose
+    call_kwargs = run_adopt_mock.call_args.kwargs
+    assert "workspace" in call_kwargs
+    assert call_kwargs["dry_run"] is dry_run
+    assert call_kwargs["verbose"] is verbose
 
 
 CONFIG_PATH = Path("/config.yaml")
