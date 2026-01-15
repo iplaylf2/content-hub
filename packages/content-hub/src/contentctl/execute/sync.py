@@ -18,7 +18,6 @@ async def print_sync_plan(
         _print_operation(
             operation,
             output,
-            source_root,
             destination_root,
         )
         yield operation
@@ -31,42 +30,42 @@ async def apply_sync_plan(
     semaphore: asyncio.Semaphore,
 ) -> AsyncIterator[SyncOperation]:
     async def apply(operation: SyncOperation) -> SyncOperation:
-        if operation.action is SyncAction.SKIP:
-            return operation
-        await asyncio.to_thread(
-            _copy_operation,
-            operation,
-            source_root,
-            destination_root,
-        )
+        if operation.action is not SyncAction.SKIP:
+            await asyncio.to_thread(
+                _apply_operation,
+                operation,
+                source_root,
+                destination_root,
+            )
         return operation
 
     async for operation in map_concurrent(operations, apply, semaphore):
         yield operation
 
 
-def _copy_operation(
+def _apply_operation(
     operation: SyncOperation,
     source_root: Path,
     destination_root: Path,
 ) -> None:
-    if operation.action is SyncAction.SKIP:
-        return
-    source = source_root / operation.relative
     destination = destination_root / operation.relative
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(source, destination)
+
+    if operation.action is SyncAction.DELETE:
+        if destination.exists():
+            destination.unlink()
+    elif operation.action in (SyncAction.COPY, SyncAction.REPLACE):
+        source = source_root / operation.relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
 
 
 def _print_operation(
     operation: SyncOperation,
     output: TextIO,
-    source_root: Path,
     destination_root: Path,
 ) -> None:
-    source = source_root / operation.relative
     destination = destination_root / operation.relative
     print(
-        f"{operation.action.value:<7} {source} -> {destination}",
+        f"{operation.action.value:<7} {destination}",
         file=output,
     )

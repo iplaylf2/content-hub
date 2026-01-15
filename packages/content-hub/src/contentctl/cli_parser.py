@@ -26,6 +26,7 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
                 all_workspaces=all_workspaces,
                 workspaces=workspaces,
                 path=args.path,
+                delete=args.delete,
                 dry_run=args.dry_run,
                 verbose=args.verbose,
             )
@@ -68,6 +69,7 @@ class DeployContext(BaseContext):
     all_workspaces: bool
     workspaces: list[str]
     path: str
+    delete: bool
 
 
 @dataclass(frozen=True)
@@ -156,6 +158,11 @@ def _add_deploy_parser(
         "--all-workspaces",
         action="store_true",
         help="Target all workspaces defined in the config.",
+    )
+    parser.add_argument(
+        "--delete",
+        action="store_true",
+        help="Delete files in workspace that don't exist in origin.",
     )
     _add_workspace_arg(parser, nargs="*")
     _add_path_arg(parser)

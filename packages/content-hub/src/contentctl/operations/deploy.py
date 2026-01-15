@@ -13,6 +13,7 @@ async def run_deploy(
     path: str,
     dry_run: bool,
     verbose: bool,
+    delete: bool,
     output: TextIO,
 ) -> None:
     base = default_concurrency()
@@ -33,6 +34,7 @@ async def run_deploy(
             destination_include=workspace.include,
             destination_exclude=workspace.exclude,
             semaphore=io_semaphore,
+            delete=delete,
         )
 
         source_root, destination_root = resolve_sync_roots(

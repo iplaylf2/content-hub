@@ -33,9 +33,12 @@ workspaces:
 Edit it to define your content flow. Run content flows:
 
 ```bash
-contentctl deploy docs    # copy origin → workspace
-contentctl adopt docs     # copy workspace → origin
+contentctl deploy docs              # copy origin → workspace
+contentctl deploy docs --delete     # sync origin → workspace and remove unmanaged files
+contentctl adopt docs               # copy workspace → origin
 ```
+
+The `--delete` flag removes files in the workspace that don't exist in origin, but only within the managed scope defined by the intersection of origin and workspace include/exclude patterns.
 
 ## Config Notes
 

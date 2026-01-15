@@ -61,6 +61,7 @@ async def _dispatch(
                 path=ctx.path,
                 dry_run=ctx.dry_run,
                 verbose=ctx.verbose,
+                delete=ctx.delete,
                 output=sys.stdout,
             )
         case AdoptContext():

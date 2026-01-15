@@ -77,7 +77,7 @@ async def _execute_and_count_copied(
 
     stream = apply_sync_plan(stream, source_root, destination_root, semaphore)
     total = await count_stream(
-        stream, predicate=lambda op: op.action is not SyncAction.SKIP
+        stream, predicate=lambda op: op.action not in (SyncAction.SKIP,)
     )
-    print(f"{operation_name} {workspace_name}: {total} files copied", file=output)
+    print(f"{operation_name} {workspace_name}: {total} files synced", file=output)
     return total
