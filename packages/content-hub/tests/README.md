@@ -37,7 +37,7 @@ Test orchestration contracts:
 
 Defer detailed logic testing to submodule tests.
 
-## Test Design Guidance
+## Writing Clear Tests
 
 ### Parametrized Tests
 
@@ -51,10 +51,29 @@ Parametrization makes the test's variable dimensions explicit in the signature. 
 - Covering boundary conditions or domain samples (empty lists, single items, multiple items)
 - Showing how outputs vary predictably with inputs
 
-### Fixtures and Mocking
+### Fixtures and Test Data
 
 - Use fixtures in `tests/_fixtures` for prepared file inputs
-- Use `monkeypatch` to intercept side effects and avoid real I/O
+- Keep test data close to the test—inline small data, factor out large or reusable datasets
+- Prefer explicit construction over complex fixture chains
+
+### Mocking and Observation
+
+Use `monkeypatch` to intercept side effects and avoid real I/O.
+
+**Semantic clarity**:
+
+- **Name by intent, not mechanism**: `copied_files` not `copy_calls`, `execute_calls` not `executed`
+- **Name helpers descriptively**: `track_copy` not `copy_side_effect`, `track_mkdir` not `mkdir_tracker`
+- **Extract repeated access**: `call_kwargs = mock.call_args.kwargs` when accessing multiple keys
+- **Use direct comparisons**: `assert calls == [(a, b)]` not `assert len(calls) == 1; assert calls[0] == (a, b)`
+- **Prefer semantic assertions**: `mock.assert_called_once()` not `assert mock.call_count == 1`
+
+**When mocking**:
+
+- Mock at the boundary of the system under test—intercept external dependencies, not internal helpers
+- Track what matters for the contract—inputs, call order, or specific values
+- Verify behavior, not implementation—focus on observable effects
 
 ### Test Scope
 
