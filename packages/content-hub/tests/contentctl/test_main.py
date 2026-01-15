@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from pathlib import Path
 from typing import Protocol
-from unittest.mock import AsyncMock, create_autospec
+from unittest.mock import create_autospec
 
 import pytest
 
@@ -237,7 +237,7 @@ def test_main_dispatches_deploy_all_workspaces(
 ) -> None:
     ctx = deploy_ctx(verbose=verbose)
 
-    run_deploy_mock = AsyncMock(spec=mainmod.run_deploy)
+    run_deploy_mock = create_autospec(mainmod.run_deploy)
     monkeypatch.setattr(mainmod, "run_deploy", run_deploy_mock)
     patch_main_context(ctx=ctx, resolved=resolved_config)
 
@@ -273,7 +273,7 @@ def test_main_dispatches_deploy_selected_workspaces(
         mainmod.select_all_workspaces,
         side_effect=AssertionError("select_all_workspaces should not run"),
     )
-    run_deploy_mock = AsyncMock(spec=mainmod.run_deploy)
+    run_deploy_mock = create_autospec(mainmod.run_deploy)
     monkeypatch.setattr(mainmod, "select_workspaces", select_workspaces_mock)
     monkeypatch.setattr(mainmod, "select_all_workspaces", select_all_workspaces_mock)
     monkeypatch.setattr(mainmod, "run_deploy", run_deploy_mock)
@@ -304,7 +304,7 @@ def test_main_dispatches_adopt_workspace(
 ) -> None:
     ctx: AdoptContext = adopt_ctx(dry_run=dry_run, verbose=verbose)
 
-    run_adopt_mock = AsyncMock(spec=mainmod.run_adopt)
+    run_adopt_mock = create_autospec(mainmod.run_adopt)
     monkeypatch.setattr(mainmod, "run_adopt", run_adopt_mock)
     patch_main_context(ctx=ctx, resolved=resolved_config)
 

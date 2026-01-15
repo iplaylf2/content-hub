@@ -9,13 +9,15 @@ from contentctl.config import ConfigError, load_config
 from tests.fixture_types import FixturePath
 
 
-def _check_env_config(config: dict[str, Any], root: str) -> bool:
+def _validate_env_config(config: dict[str, Any], root: str) -> bool:
+    """Validate basic environment variable substitution in config."""
     return str(config["origin"]).endswith("/origin") and str(
         config["workspaces"]["docs"]
     ).endswith("/docs")
 
 
-def _check_env_nested_config(config: dict[str, Any], root: str) -> bool:
+def _validate_nested_env_config(config: dict[str, Any], root: str) -> bool:
+    """Validate nested environment variable substitution in config."""
     return (
         config["defaults"]["exclude"] == [f"{root}/tmp/*"]
         and config["origin"]["path"] == f"{root}/origin"
@@ -47,13 +49,13 @@ def test_load_config_valid(fixture_path: FixturePath, config_file: str) -> None:
             "config_env.yaml",
             {"SPACE_STATION": "station"},
             [],
-            _check_env_config,
+            _validate_env_config,
         ),
         (
             "config_env_nested.yaml",
             {"ROCKET_LAUNCHPAD": "launchpad"},
             ["MISSING_VAR"],
-            _check_env_nested_config,
+            _validate_nested_env_config,
         ),
     ],
 )

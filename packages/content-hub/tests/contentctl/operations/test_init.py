@@ -32,9 +32,7 @@ def test_init_writes_config_file(
         assert observed_writes == []
     else:
         write_text_mock.assert_called_once()
-        assert len(observed_writes) == 1
-        content = observed_writes[0]
-        assert isinstance(content, str) and len(content) > 0
+        assert len(observed_writes) == 1 and observed_writes[0]
 
 
 def test_init_fails_when_file_exists(tmp_path: Path) -> None:
