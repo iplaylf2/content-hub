@@ -41,7 +41,7 @@ DEFAULT_CONFIG_NAME = "content-hub.yaml"
     ],
 )
 def test_parse_cli_success(
-    tmp_path: Path,
+    fixture_dir: Path,
     argv: list[str],
     ctx_type: type[DeployContext | AdoptContext],
     command: str,
@@ -50,12 +50,12 @@ def test_parse_cli_success(
     workspaces: list[str] | None,
     workspace: str | None,
 ) -> None:
-    ctx = parse_cli(argv, tmp_path)
+    ctx = parse_cli(argv, fixture_dir)
 
     assert isinstance(ctx, ctx_type)
     assert ctx.command == command
     assert ctx.path == path
-    assert ctx.config_path == (tmp_path / DEFAULT_CONFIG_NAME).resolve()
+    assert ctx.config_path == (fixture_dir / DEFAULT_CONFIG_NAME).resolve()
     if isinstance(ctx, DeployContext):
         assert ctx.all_workspaces is all_workspaces
         assert ctx.workspaces == workspaces
@@ -73,9 +73,9 @@ def test_parse_cli_success(
         ["adopt", ""],
     ],
 )
-def test_parse_cli_rejects_invalid_args(tmp_path: Path, argv: list[str]) -> None:
+def test_parse_cli_rejects_invalid_args(fixture_dir: Path, argv: list[str]) -> None:
     with pytest.raises(SystemExit):
-        parse_cli(argv, tmp_path)
+        parse_cli(argv, fixture_dir)
 
 
 @pytest.mark.parametrize(
@@ -87,18 +87,18 @@ def test_parse_cli_rejects_invalid_args(tmp_path: Path, argv: list[str]) -> None
     ],
 )
 def test_parse_cli_accepts_config_path(
-    tmp_path: Path,
+    fixture_dir: Path,
     config_arg: str,
     use_absolute: bool,
 ) -> None:
-    config_path = tmp_path / config_arg
+    config_path = fixture_dir / config_arg
     arg = str(config_path) if use_absolute else config_arg
-    ctx = parse_cli(["--config", arg, "deploy", "docs"], tmp_path)
+    ctx = parse_cli(["--config", arg, "deploy", "docs"], fixture_dir)
 
     if use_absolute:
         assert ctx.config_path == config_path.resolve()
     else:
-        assert ctx.config_path == (tmp_path / config_arg).resolve()
+        assert ctx.config_path == (fixture_dir / config_arg).resolve()
 
 
 @pytest.mark.parametrize(
@@ -111,12 +111,12 @@ def test_parse_cli_accepts_config_path(
     ],
 )
 def test_parse_cli_sets_flags(
-    tmp_path: Path,
+    fixture_dir: Path,
     flags: list[str],
     expected_dry_run: bool,
     expected_verbose: bool,
 ) -> None:
-    ctx = parse_cli([*flags, "deploy", "docs"], tmp_path)
+    ctx = parse_cli([*flags, "deploy", "docs"], fixture_dir)
 
     assert ctx.dry_run is expected_dry_run
     assert ctx.verbose is expected_verbose

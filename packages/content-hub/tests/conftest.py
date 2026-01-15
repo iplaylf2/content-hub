@@ -10,15 +10,21 @@ def fixture_path() -> Callable[..., Path]:
     """Return a function to get fixture file paths."""
 
     def _fixture_path(*parts: str) -> Path:
-        return FIXTURES_ROOT.joinpath(*parts)
+        return FIXTURE_ROOT.joinpath(*parts)
 
     return _fixture_path
+
+
+@pytest.fixture
+def fixture_dir() -> Path:
+    """Return the path to the _fixture directory."""
+    return FIXTURE_ROOT
 
 
 TESTS_ROOT = Path(__file__).resolve().parent
 PACKAGE_ROOT = TESTS_ROOT.parent
 SRC_ROOT = PACKAGE_ROOT / "src"
-FIXTURES_ROOT = TESTS_ROOT / "_fixtures"
+FIXTURE_ROOT = TESTS_ROOT / "_fixture"
 
 
 def _prepend_sys_path(path: Path) -> None:

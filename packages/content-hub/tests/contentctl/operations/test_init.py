@@ -9,19 +9,21 @@ from contentctl.operations.init import run_init
 
 @pytest.mark.parametrize("dry_run", [True, False])
 def test_init_writes_config_file(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, dry_run: bool
+    fixture_dir: Path, monkeypatch: pytest.MonkeyPatch, dry_run: bool
 ) -> None:
     observed_writes: list[str] = []
 
     def observe_write_text(self: Path, content: str, **kwargs: object) -> None:
         observed_writes.append(content)
 
+    mkdir_mock = create_autospec(Path.mkdir)
     write_text_mock = create_autospec(Path.write_text, side_effect=observe_write_text)
+    monkeypatch.setattr(Path, "mkdir", mkdir_mock)
     monkeypatch.setattr(Path, "write_text", write_text_mock)
 
     output = StringIO()
     run_init(
-        path=tmp_path,
+        path=fixture_dir,
         dry_run=dry_run,
         verbose=False,
         output=output,
@@ -35,14 +37,16 @@ def test_init_writes_config_file(
         assert len(observed_writes) == 1 and observed_writes[0]
 
 
-def test_init_fails_when_file_exists(tmp_path: Path) -> None:
-    config_file = tmp_path / "content-hub.yaml"
-    config_file.touch()
+def test_init_fails_when_file_exists(
+    fixture_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    exists_mock = create_autospec(Path.exists, return_value=True)
+    monkeypatch.setattr(Path, "exists", exists_mock)
 
     output = StringIO()
     with pytest.raises(FileExistsError):
         run_init(
-            path=tmp_path,
+            path=fixture_dir,
             dry_run=False,
             verbose=False,
             output=output,
@@ -50,7 +54,7 @@ def test_init_fails_when_file_exists(tmp_path: Path) -> None:
 
 
 def test_init_creates_parent_directories(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    fixture_dir: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     mkdir_mock = create_autospec(Path.mkdir)
     write_text_mock = create_autospec(Path.write_text)
@@ -60,7 +64,7 @@ def test_init_creates_parent_directories(
 
     output = StringIO()
     run_init(
-        path=tmp_path,
+        path=fixture_dir,
         dry_run=False,
         verbose=False,
         output=output,

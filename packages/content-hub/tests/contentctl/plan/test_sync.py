@@ -15,18 +15,28 @@ type CollectOperations = Callable[[AsyncIterator[SyncOperation]], list[SyncOpera
 
 
 @pytest.mark.parametrize(
-    "path",
+    ("source", "dest", "path"),
     [
-        str(Path("/") / "abs"),
-        "../escape",
+        (
+            ("plan_sync", "source_multi"),
+            ("plan_sync", "destination_single"),
+            str(Path("/") / "abs"),
+        ),
+        (
+            ("plan_sync", "source_multi"),
+            ("plan_sync", "destination_single"),
+            "../escape",
+        ),
     ],
 )
 def test_resolve_sync_paths_rejects_invalid_paths(
     fixture_path: FixturePath,
+    source: tuple[str, ...],
+    dest: tuple[str, ...],
     path: str,
 ) -> None:
-    source_root = fixture_path("plan_sync", "source_dir")
-    destination_root = fixture_path("plan_sync", "destination_single")
+    source_root = fixture_path(*source)
+    destination_root = fixture_path(*dest)
 
     with pytest.raises(SyncError):
         resolve_sync_paths(
@@ -36,9 +46,19 @@ def test_resolve_sync_paths_rejects_invalid_paths(
         )
 
 
-def test_resolve_sync_paths_rejects_missing_source(tmp_path: Path) -> None:
-    source_root = tmp_path / "missing"
-    destination_root = tmp_path / "destination"
+@pytest.mark.parametrize(
+    ("source", "dest"),
+    [
+        ("nonexistent_source", "nonexistent_destination"),
+    ],
+)
+def test_resolve_sync_paths_rejects_missing_source(
+    fixture_path: FixturePath,
+    source: str,
+    dest: str,
+) -> None:
+    source_root = fixture_path(source)
+    destination_root = fixture_path(dest)
 
     with pytest.raises(SyncError):
         resolve_sync_paths(
@@ -48,13 +68,21 @@ def test_resolve_sync_paths_rejects_missing_source(tmp_path: Path) -> None:
         )
 
 
+@pytest.mark.parametrize(
+    ("source", "dest"),
+    [
+        (("plan_sync", "source_multi"), ("plan_sync", "destination_single")),
+    ],
+)
 def test_plan_sync_applies_include_exclude(
     fixture_path: FixturePath,
     plan_semaphores: PlanSemaphores,
     collect_operations: CollectOperations,
+    source: tuple[str, ...],
+    dest: tuple[str, ...],
 ) -> None:
-    source_root = fixture_path("plan_sync", "source_dir")
-    destination_root = fixture_path("plan_sync", "destination_single")
+    source_root = fixture_path(*source)
+    destination_root = fixture_path(*dest)
 
     source_path, destination_path = resolve_sync_paths(
         source_root=source_root,
@@ -78,10 +106,28 @@ def test_plan_sync_applies_include_exclude(
 
 
 @pytest.mark.parametrize(
-    ("source_exclude", "expected_count", "expected_action"),
+    (
+        "source",
+        "dest",
+        "source_exclude",
+        "expected_count",
+        "expected_action",
+    ),
     [
-        ((), 1, SyncAction.REPLACE),
-        (("*.txt",), 0, None),
+        (
+            ("plan_sync", "source_single"),
+            ("plan_sync", "destination_single"),
+            (),
+            1,
+            SyncAction.REPLACE,
+        ),
+        (
+            ("plan_sync", "source_single"),
+            ("plan_sync", "destination_single"),
+            ("*.txt",),
+            0,
+            None,
+        ),
     ],
 )
 def test_plan_sync_file_source(
@@ -89,12 +135,14 @@ def test_plan_sync_file_source(
     plan_semaphores: PlanSemaphores,
     collect_operations: CollectOperations,
     make_sync_op: Callable[[str, SyncAction], SyncOperation],
+    source: tuple[str, ...],
+    dest: tuple[str, ...],
     source_exclude: tuple[str, ...],
     expected_count: int,
     expected_action: SyncAction | None,
 ) -> None:
-    source_root = fixture_path("plan_sync", "source_single")
-    destination_root = fixture_path("plan_sync", "destination_single")
+    source_root = fixture_path(*source)
+    destination_root = fixture_path(*dest)
 
     source_path, destination_path = resolve_sync_paths(
         source_root=source_root,
@@ -121,9 +169,17 @@ def test_plan_sync_file_source(
 
 
 @pytest.mark.parametrize(
-    ("destination_include", "destination_exclude", "expected_actions"),
+    (
+        "source",
+        "dest",
+        "destination_include",
+        "destination_exclude",
+        "expected_actions",
+    ),
     [
         (
+            ("plan_sync", "source_multi"),
+            ("plan_sync", "destination_single"),
             ("*.txt", "**/*.txt"),
             ("sub/*",),
             {
@@ -133,6 +189,8 @@ def test_plan_sync_file_source(
             },
         ),
         (
+            ("plan_sync", "source_multi"),
+            ("plan_sync", "destination_single"),
             (),
             ("*.txt", "**/*.txt"),
             {
@@ -147,12 +205,14 @@ def test_plan_sync_destination_filtering(
     fixture_path: FixturePath,
     plan_semaphores: PlanSemaphores,
     collect_operations: CollectOperations,
+    source: tuple[str, ...],
+    dest: tuple[str, ...],
     destination_include: tuple[str, ...],
     destination_exclude: tuple[str, ...],
     expected_actions: dict[str, SyncAction],
 ) -> None:
-    source_root = fixture_path("plan_sync", "source_dir")
-    destination_root = fixture_path("plan_sync", "destination_single")
+    source_root = fixture_path(*source)
+    destination_root = fixture_path(*dest)
     source_path, destination_path = resolve_sync_paths(
         source_root=source_root,
         destination_root=destination_root,
@@ -175,23 +235,23 @@ def test_plan_sync_destination_filtering(
 
 
 @pytest.mark.parametrize(
-    ("source_root", "destination_root", "path"),
+    ("source", "dest", "path"),
     [
-        ("source_dir", "source_dir", "."),
-        ("source_dir", "source_dir/sub", "."),
-        ("source_dir/sub", "source_dir", "."),
+        (("plan_sync", "source_multi"), ("plan_sync", "source_multi"), "."),
+        (("plan_sync", "source_multi"), ("plan_sync", "source_multi", "sub"), "."),
+        (("plan_sync", "source_multi", "sub"), ("plan_sync", "source_multi"), "."),
     ],
 )
 def test_resolve_sync_paths_rejects_overlapping_paths(
     fixture_path: FixturePath,
-    source_root: str,
-    destination_root: str,
+    source: tuple[str, ...],
+    dest: tuple[str, ...],
     path: str,
 ) -> None:
     with pytest.raises(SyncError):
         resolve_sync_paths(
-            source_root=fixture_path("plan_sync", source_root),
-            destination_root=fixture_path("plan_sync", destination_root),
+            source_root=fixture_path(*source),
+            destination_root=fixture_path(*dest),
             path=path,
         )
 

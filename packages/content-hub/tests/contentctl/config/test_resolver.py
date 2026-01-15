@@ -110,10 +110,14 @@ def test_select_all_workspaces_sorted(
     assert names == expected_names
 
 
+@pytest.mark.parametrize(
+    "config_file",
+    ["resolver_unknown.yaml"],
+)
 def test_select_workspaces_unknown(
-    fixture_path: FixturePath, load_yaml_fixture: LoadYamlFixture
+    fixture_path: FixturePath, load_yaml_fixture: LoadYamlFixture, config_file: str
 ) -> None:
-    config_path = fixture_path("resolver_unknown.yaml")
+    config_path = fixture_path(config_file)
     config = load_yaml_fixture(config_path)
     resolved = resolve_config(config, config_path)
 

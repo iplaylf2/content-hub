@@ -1,32 +1,9 @@
-from collections.abc import Callable
-from pathlib import Path
 from typing import Any
 
 import pytest
 
 from contentctl.config import ConfigError, load_config
-
 from tests.fixture_types import FixturePath
-
-
-def _validate_env_config(config: dict[str, Any], root: str) -> bool:
-    """Validate basic environment variable substitution in config."""
-    return str(config["origin"]).endswith("/origin") and str(
-        config["workspaces"]["docs"]
-    ).endswith("/docs")
-
-
-def _validate_nested_env_config(config: dict[str, Any], root: str) -> bool:
-    """Validate nested environment variable substitution in config."""
-    return (
-        config["defaults"]["exclude"] == [f"{root}/tmp/*"]
-        and config["origin"]["path"] == f"{root}/origin"
-        and config["origin"]["include"] == [f"{root}/docs/*.md", "/fallback/*.md"]
-        and config["workspaces"]["docs"]["path"] == f"{root}/docs"
-        and config["workspaces"]["docs"]["include"] == [f"{root}/docs/*.md"]
-        and config["workspaces"]["docs"]["exclude"] == [f"{root}/docs/drafts/*.md"]
-        and config["workspaces"]["assets"] == f"{root}/assets"
-    )
 
 
 @pytest.mark.parametrize(
@@ -43,49 +20,66 @@ def test_load_config_valid(fixture_path: FixturePath, config_file: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("config_file", "env_vars", "env_to_unset", "expected_checks"),
+    ("config_file", "env_vars", "env_to_unset", "expected"),
     [
         (
             "config_env.yaml",
-            {"SPACE_STATION": "station"},
+            {"SPACE_STATION": "/test/station"},
             [],
-            _validate_env_config,
+            {
+                "origin": "/test/station/origin",
+                "workspaces": {"docs": "/test/station/docs"},
+            },
         ),
         (
             "config_env_nested.yaml",
-            {"ROCKET_LAUNCHPAD": "launchpad"},
+            {"ROCKET_LAUNCHPAD": "/test/launchpad"},
             ["MISSING_VAR"],
-            _validate_nested_env_config,
+            {
+                "defaults": {"exclude": ["/test/launchpad/tmp/*"]},
+                "origin": {
+                    "path": "/test/launchpad/origin",
+                    "include": ["/test/launchpad/docs/*.md", "/fallback/*.md"],
+                },
+                "workspaces": {
+                    "docs": {
+                        "path": "/test/launchpad/docs",
+                        "include": ["/test/launchpad/docs/*.md"],
+                        "exclude": ["/test/launchpad/docs/drafts/*.md"],
+                    },
+                    "assets": "/test/launchpad/assets",
+                },
+            },
         ),
     ],
 )
 def test_load_config_env_substitution(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
     fixture_path: FixturePath,
+    monkeypatch: pytest.MonkeyPatch,
     config_file: str,
     env_vars: dict[str, str],
     env_to_unset: list[str],
-    expected_checks: Callable[[dict[str, Any], str], bool],
+    expected: dict[str, Any],
 ) -> None:
     for key, value in env_vars.items():
-        monkeypatch.setenv(key, str(tmp_path / value))
+        monkeypatch.setenv(key, value)
     for env_var in env_to_unset:
         monkeypatch.delenv(env_var, raising=False)
     config_path = fixture_path(config_file)
 
     config = load_config(config_path)
 
-    root_value = str(tmp_path / list(env_vars.values())[0])
-    assert expected_checks(config, root_value)
+    assert config == expected
 
 
 @pytest.mark.parametrize(
     "config_file",
     ["missing.yaml"],
 )
-def test_load_config_rejects_missing_file(tmp_path: Path, config_file: str) -> None:
-    config_path = tmp_path / config_file
+def test_load_config_rejects_missing_file(
+    fixture_path: FixturePath, config_file: str
+) -> None:
+    config_path = fixture_path(config_file)
 
     with pytest.raises(ConfigError):
         load_config(config_path)

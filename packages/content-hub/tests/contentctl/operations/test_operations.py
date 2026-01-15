@@ -23,12 +23,32 @@ def origin(make_workspace: MakeWorkspace) -> Workspace:
 
 
 @pytest.mark.parametrize(
-    ("dry_run", "verbose"),
+    ("dry_run", "verbose", "source", "dest"),
     [
-        (True, True),
-        (True, False),
-        (False, True),
-        (False, False),
+        (
+            True,
+            True,
+            ("plan_sync", "source_multi"),
+            ("plan_sync", "destination_single"),
+        ),
+        (
+            True,
+            False,
+            ("plan_sync", "source_multi"),
+            ("plan_sync", "destination_single"),
+        ),
+        (
+            False,
+            True,
+            ("plan_sync", "source_multi"),
+            ("plan_sync", "destination_single"),
+        ),
+        (
+            False,
+            False,
+            ("plan_sync", "source_multi"),
+            ("plan_sync", "destination_single"),
+        ),
     ],
 )
 def test_run_adopt_applies_plan(
@@ -38,6 +58,8 @@ def test_run_adopt_applies_plan(
     origin: Workspace,
     dry_run: bool,
     verbose: bool,
+    source: tuple[str, str],
+    dest: tuple[str, str],
 ) -> None:
     execute_calls: list[tuple[bool, bool]] = []
 
@@ -76,8 +98,8 @@ def test_run_adopt_applies_plan(
     resolve_sync_paths_mock = create_autospec(
         adopt_mod.resolve_sync_paths,
         return_value=(
-            fixture_path("plan_sync", "source_dir"),
-            fixture_path("plan_sync", "destination_single"),
+            fixture_path(*source),
+            fixture_path(*dest),
         ),
     )
 
