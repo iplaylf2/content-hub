@@ -3,7 +3,7 @@ import shutil
 from collections.abc import AsyncIterator
 from io import StringIO
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import create_autospec
 
 import pytest
 
@@ -35,8 +35,8 @@ def test_apply_sync_plan_copies_non_skip(
     def observe_copy(src: Path, dst: Path) -> None:
         observed_copies.append((src, dst))
 
-    copy2_mock = Mock(spec=shutil.copy2, side_effect=observe_copy)
-    mkdir_mock = Mock(spec=Path.mkdir)
+    copy2_mock = create_autospec(shutil.copy2, side_effect=observe_copy)
+    mkdir_mock = create_autospec(Path.mkdir)
 
     monkeypatch.setattr("contentctl.execute.sync.shutil.copy2", copy2_mock)
     monkeypatch.setattr(Path, "mkdir", mkdir_mock)

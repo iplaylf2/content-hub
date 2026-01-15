@@ -43,10 +43,10 @@ Mock external dependencies at system boundaries. Track what matters for the cont
 
 **Mock construction:**
 
-- Always use `spec` parameter to enforce interface contracts with `Mock(spec=...)` or `create_autospec(...)`
-- Use `Mock` over `MagicMock` unless you need special magic method behavior
-- Use `side_effect` only when tracking calls or implementing custom behavior
-- If you don't need to observe, omit `side_effect`
+- Always use `create_autospec()` over `Mock(spec=...)` for better type safety
+- When mocking instance methods with `monkeypatch.setattr()`, remember the method receives `self` as first parameter
+- Use `side_effect` when tracking calls or implementing custom behavior
+- If the observer only passes, create the mock directly without defining a function
 
 **Naming and assertions:**
 

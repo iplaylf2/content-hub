@@ -1,6 +1,6 @@
 from io import StringIO
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import create_autospec
 
 import pytest
 
@@ -11,7 +11,12 @@ from contentctl.operations.init import run_init
 def test_init_writes_config_file(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, dry_run: bool
 ) -> None:
-    write_text_mock = Mock(spec=Path.write_text)
+    observed_writes: list[str] = []
+
+    def observe_write_text(self: Path, content: str, **kwargs: object) -> None:
+        observed_writes.append(content)
+
+    write_text_mock = create_autospec(Path.write_text, side_effect=observe_write_text)
     monkeypatch.setattr(Path, "write_text", write_text_mock)
 
     output = StringIO()
@@ -26,10 +31,9 @@ def test_init_writes_config_file(
         write_text_mock.assert_not_called()
     else:
         write_text_mock.assert_called_once()
-        call_args = write_text_mock.call_args[0]
-        content = call_args[0]
-        assert isinstance(content, str)
-        assert len(content) > 0
+        assert len(observed_writes) == 1
+        assert isinstance(observed_writes[0], str)
+        assert len(observed_writes[0]) > 0
 
 
 def test_init_fails_when_file_exists(tmp_path: Path) -> None:
@@ -49,14 +53,8 @@ def test_init_fails_when_file_exists(tmp_path: Path) -> None:
 def test_init_creates_parent_directories(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    observed_mkdirs: list[tuple[Path, bool, bool]] = []
-
-    def observe_mkdir(parents: bool = False, exist_ok: bool = False) -> None:
-        # When called as path.mkdir(), the path is bound to the mock instance
-        observed_mkdirs.append((tmp_path, parents, exist_ok))
-
-    mkdir_mock = Mock(spec=Path.mkdir, side_effect=observe_mkdir)
-    write_text_mock = Mock(spec=Path.write_text)
+    mkdir_mock = create_autospec(Path.mkdir)
+    write_text_mock = create_autospec(Path.write_text)
 
     monkeypatch.setattr(Path, "mkdir", mkdir_mock)
     monkeypatch.setattr(Path, "write_text", write_text_mock)
@@ -69,4 +67,7 @@ def test_init_creates_parent_directories(
         output=output,
     )
 
-    assert observed_mkdirs == [(tmp_path, True, True)]
+    mkdir_mock.assert_called_once()
+    call_kwargs = mkdir_mock.call_args.kwargs
+    assert call_kwargs["parents"] is True
+    assert call_kwargs["exist_ok"] is True

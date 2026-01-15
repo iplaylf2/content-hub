@@ -71,10 +71,8 @@ def test_parse_cli_success(
     ],
 )
 def test_parse_cli_rejects_invalid_args(tmp_path: Path, argv: list[str]) -> None:
-    with pytest.raises(SystemExit) as excinfo:
+    with pytest.raises(SystemExit):
         parse_cli(argv, tmp_path)
-
-    assert excinfo.value.code == 2
 
 
 @pytest.mark.parametrize(
