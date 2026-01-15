@@ -6,9 +6,9 @@ This test suite emphasizes layered testing, contract validation, and responsibil
 
 Test at boundaries, not through layers:
 
-**Submodules** test behavior comprehensively—rules, edge cases, data transformations, boundary conditions, error handling. These tests document the module's contract.
+**Submodules** test behavior comprehensively: rules, edge cases, data transformations, boundary conditions, error handling. These tests document the module's contract.
 
-**Higher-level modules** test orchestration only—call patterns, data flow, output mapping. Defer detailed logic testing to submodules.
+**Higher-level modules** test orchestration only: call patterns, data flow, output mapping. Defer detailed logic testing to submodules.
 
 ## Writing Clear Tests
 
@@ -22,7 +22,7 @@ When tests need file inputs, prepare real files in `tests/_fixtures`. Don't simu
 
 Use `@pytest.mark.parametrize` to express variation through parameters while keeping test structure invariant.
 
-**One test, one contract.** Parameters enumerate conditions over which the contract holds—parametrize by intent, not volume. Even single values can be parameters if they represent design axes.
+**One test, one contract.** Parameters enumerate conditions over which the contract holds. Parametrize by intent, not volume. Even single values can be parameters if they represent design axes.
 
 **When to parametrize:**
 
@@ -55,6 +55,22 @@ Mock external dependencies at system boundaries. Track what matters for the cont
 - Extract repeated access. Avoid multiple `mock.call_args.kwargs["key"]` lookups
 - Use direct comparisons: `assert calls == [(a, b)]` not multi-step length checks
 - Prefer semantic assertions: `mock.assert_called_once()` not manual count checks
+
+### Fixture Organization
+
+Keep fixture scope appropriate to usage patterns. Use hierarchical organization for complex test suites.
+
+**Scope guidelines:**
+
+- File-level for single test files
+- Module-level for multiple files in same directory  
+- Global only for truly shared utilities
+
+**Best practices:**
+
+- Never import `conftest.py` directly—use separate `fixture_types.py` files for fixture contracts
+- Keep test directories focused: only test files, `conftest.py`, and `fixture_types.py`
+- Use file-level constants for simple values that don't need sharing across files
 
 ### Test Scope
 

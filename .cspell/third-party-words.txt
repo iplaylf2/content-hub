@@ -2,6 +2,7 @@ addopts
 autospec
 basedpyright
 coderabbitai
+conftest
 delenv
 docstrings
 jsonschema
