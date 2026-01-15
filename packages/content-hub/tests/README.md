@@ -6,50 +6,21 @@ This test suite emphasizes layered testing, contract validation, and responsibil
 
 Test at boundaries, not through layers:
 
-- **Submodules** test behavior comprehensively—rules, edge cases, data transformations
-- **Higher-level modules** test orchestration only—which calls happen, what data passes through
-- **Avoid duplicate assertions** across layers; defer detailed logic testing to submodules
+**Submodules** test behavior comprehensively—rules, edge cases, data transformations, boundary conditions, error handling. These tests document the module's contract.
+
+**Higher-level modules** test orchestration only—call patterns, data flow, output mapping. Defer detailed logic testing to submodules.
 
 ## Test Environment
 
 **No filesystem writes.** Tests read from fixtures in `tests/_fixtures` but must not write to disk. Use `monkeypatch` to observe side effects without real I/O.
 
-## Responsibilities by Layer
-
-### Submodules
-
-Comprehensive testing of module behavior:
-
-- Rules and edge cases
-- Data transformations and validations
-- Boundary conditions
-- Error handling
-
-These tests document the module's contract.
-
-### Higher-level Modules
-
-Test orchestration contracts:
-
-- **Call patterns**: which functions are invoked, in what order
-- **Data flow**: what arguments are passed through
-- **Output mapping**: how results are summarized or errors are reported
-
-Defer detailed logic testing to submodule tests.
-
 ## Writing Clear Tests
 
 ### Parametrized Tests
 
-Use `@pytest.mark.parametrize` to **separate data from logic**—declare which values are variables, which parts are invariant test structure.
+Use `@pytest.mark.parametrize` to **separate data from logic**—make variable dimensions explicit in the signature, keep test structure invariant.
 
-Parametrization makes the test's variable dimensions explicit in the signature. When you see `@pytest.mark.parametrize("verbose", [True])`, you immediately know `verbose` is a design parameter the test depends on, not a hardcoded constant. The test body becomes the invariant framework; the parameter list becomes the variable data.
-
-**When to use**:
-
-- Making variable dimensions explicit (flags, modes, orderings, path variations)
-- Covering boundary conditions or domain samples (empty lists, single items, multiple items)
-- Showing how outputs vary predictably with inputs
+**Parametrize based on intent, not data quantity.** The goal is declaring what varies in your test, not reducing code. Even a single value can be parametrized if it represents a design dimension.
 
 ### Fixtures and Test Data
 
@@ -59,39 +30,38 @@ Parametrization makes the test's variable dimensions explicit in the signature. 
 
 ### Mocking and Observation
 
-Use `monkeypatch` to intercept side effects and avoid real I/O.
+**Mock construction**:
 
-**Semantic clarity**:
+- **Always use `spec` parameter**: enforce interface contracts with `Mock(spec=...)` or `create_autospec(...)`
+- **Use `Mock` over `MagicMock`**: unless you need special magic method behavior
+- **Side effects when observing**: use `side_effect` only when tracking calls or implementing custom behavior
+- **Direct mocks when stubbing**: if you don't need to observe, omit `side_effect`
 
-- **Name by intent, not mechanism**: `copied_files` not `copy_calls`, `execute_calls` not `executed`
-- **Name helpers descriptively**: `track_copy` not `copy_side_effect`, `track_mkdir` not `mkdir_tracker`
-- **Extract repeated access**: `call_kwargs = mock.call_args.kwargs` when accessing multiple keys
-- **Use direct comparisons**: `assert calls == [(a, b)]` not `assert len(calls) == 1; assert calls[0] == (a, b)`
-- **Prefer semantic assertions**: `mock.assert_called_once()` not `assert mock.call_count == 1`
+**Naming and assertions**:
 
-**When mocking**:
+- **Name by intent**: `observed_copies` not `copy_calls`
+- **Name observers descriptively**: `observe_copy` not `copy_side_effect`
+- **Extract repeated access**: avoid multiple `mock.call_args.kwargs["key"]` lookups
+- **Use direct comparisons**: `assert calls == [(a, b)]` not multi-step length checks
+- **Prefer semantic assertions**: `mock.assert_called_once()` not manual count checks
 
-- Mock at the boundary of the system under test—intercept external dependencies, not internal helpers
-- Track what matters for the contract—inputs, call order, or specific values
-- Verify behavior, not implementation—focus on observable effects
+**What to mock**: Mock external dependencies at system boundaries. Track what matters for the contract—inputs, call order, or specific values.
 
 ### Test Scope
 
 Express **contract intent**, not incidental implementation:
 
-- **Test public APIs**, not private helpers or module internals
-- **Avoid asserting third-party tool output** (e.g., validator error text) unless it's an explicit contract
-- **Keep error tests minimal**: verify error type and high-level message intent
-- **Confirm contracts before testing**: when behavior is unclear, clarify the expected contract first
+- Test public APIs, not private helpers or module internals
+- Avoid asserting third-party tool output unless it's an explicit contract
+- Keep error tests minimal—verify error type and high-level message intent
+- Confirm contracts before testing when behavior is unclear
 
 ## Coverage Intent
 
-**Coverage follows module responsibilities.** Add tests when they represent missing contracts, not uncovered lines. Reinforce boundaries, not implementation.
+**Coverage follows module responsibilities.** Add tests when they represent missing contracts, not uncovered lines.
 
 ### Modules Outside Test Scope
 
-Some modules are intentionally excluded from direct testing:
+**`*_kit` modules**: Lightweight adapters validated indirectly through integration tests of higher-level modules.
 
-**`*_kit` modules**: Lightweight adapters or composition layers. Validated indirectly through integration tests of higher-level modules.
-
-**`utils` modules**: General-purpose utilities with narrow responsibilities. Implicitly covered by tests of dependent modules. Direct testing would duplicate assertions without clarifying contracts.
+**`utils` modules**: General-purpose utilities implicitly covered by tests of dependent modules.

@@ -4,6 +4,7 @@ coderabbitai
 delenv
 docstrings
 jsonschema
+kwargs
 monkeypatch
 poethepoet
 pycache
