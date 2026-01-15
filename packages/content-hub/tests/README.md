@@ -16,8 +16,7 @@ Test at boundaries, not through layers:
 
 Tests read from fixtures in `tests/_fixtures` but never write to disk. Use `monkeypatch` to observe side effects without real I/O.
 
-- Keep test data close to tests. Inline small data, factor out large or reusable datasets
-- Prefer explicit construction over complex fixture chains
+When tests need file inputs, prepare real files in `tests/_fixtures`. Don't simulate file content with strings.
 
 ### Parametrization
 
