@@ -20,7 +20,7 @@ When tests need file inputs, prepare real files in `tests/_fixtures`. Don't simu
 
 ### Parametrization
 
-Use `@pytest.mark.parametrize` to express variation through parameters while keeping test logic invariant.
+Use `@pytest.mark.parametrize` to express variation through parameters while keeping test structure invariant.
 
 **One test, one contract.** Parameters enumerate conditions over which the contract holds—parametrize by intent, not volume. Even single values can be parameters if they represent design axes.
 
