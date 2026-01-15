@@ -5,6 +5,7 @@ delenv
 docstrings
 jsonschema
 monkeypatch
+poethepoet
 pycache
 pytest
 pyyaml

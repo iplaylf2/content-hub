@@ -7,3 +7,10 @@ dependencies = ["jsonschema>=4.26.0", "pyyaml>=6.0.3"]
 
 [project.scripts]
 contentctl = "contentctl.__main__:main"
+
+[tool.poe.tasks]
+
+coverage = "pytest --cov=src"
+lint = "ruff check"
+test = "pytest"
+typecheck = "basedpyright"

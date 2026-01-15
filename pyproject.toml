@@ -1,9 +1,26 @@
+[project]
+name = "root"
+version = "0.0.0"
+requires-python = ">=3.14"
+
 [tool.uv.workspace]
 members = ["packages/content-hub"]
+
+[tool.poe.tasks.ws]
+cmd = "uv run --directory packages/${workspace} poe ${task}"
+
+[[tool.poe.tasks.ws.args]]
+name = "workspace"
+positional = true
+
+[[tool.poe.tasks.ws.args]]
+name = "task"
+positional = true
 
 [dependency-groups]
 dev = [
     "basedpyright>=1.37.1",
+    "poethepoet>=0.40.0",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
     "ruff>=0.14.11",
