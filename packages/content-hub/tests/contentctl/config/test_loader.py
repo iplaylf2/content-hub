@@ -5,7 +5,8 @@ from typing import Any
 import pytest
 
 from contentctl.config import ConfigError, load_config
-from tests.contentctl.fixtures import fixture_path
+
+from tests.fixture_types import FixturePath
 
 
 def _check_env_config(config: dict[str, Any], root: str) -> bool:
@@ -30,7 +31,7 @@ def _check_env_nested_config(config: dict[str, Any], root: str) -> bool:
     "fixture_name",
     ["config_valid.yaml"],
 )
-def test_load_config_valid(fixture_name: str) -> None:
+def test_load_config_valid(fixture_path: FixturePath, fixture_name: str) -> None:
     config_path = fixture_path(fixture_name)
 
     config = load_config(config_path)
@@ -59,6 +60,7 @@ def test_load_config_valid(fixture_name: str) -> None:
 def test_load_config_env_substitution(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    fixture_path: FixturePath,
     fixture_name: str,
     env_vars: dict[str, str],
     env_to_unset: list[str],
@@ -96,7 +98,7 @@ def test_load_config_rejects_missing_file(tmp_path: Path, filename: str) -> None
         "config_schema_error.yaml",
     ],
 )
-def test_load_config_invalid_files(fixture: str) -> None:
+def test_load_config_invalid_files(fixture_path: FixturePath, fixture: str) -> None:
     config_path = fixture_path(fixture)
 
     with pytest.raises(ConfigError):

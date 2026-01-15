@@ -9,7 +9,6 @@ import pytest
 
 from contentctl.execute.sync import apply_sync_plan, print_sync_plan
 from contentctl.plan.sync import SyncAction, SyncOperation
-from tests.contentctl.execute.fixtures import DESTINATION_ROOT, SOURCE_ROOT
 
 
 @pytest.mark.parametrize(
@@ -27,6 +26,8 @@ from tests.contentctl.execute.fixtures import DESTINATION_ROOT, SOURCE_ROOT
 )
 def test_apply_sync_plan_copies_non_skip(
     monkeypatch: pytest.MonkeyPatch,
+    source_root: Path,
+    destination_root: Path,
     operations: list[tuple[str, SyncAction]],
     expected_actions: list[tuple[str, str]],
 ) -> None:
@@ -45,14 +46,14 @@ def test_apply_sync_plan_copies_non_skip(
 
     observed = apply_sync_plan(
         stream,
-        source_root=SOURCE_ROOT,
-        destination_root=DESTINATION_ROOT,
+        source_root=source_root,
+        destination_root=destination_root,
         semaphore=asyncio.Semaphore(2),
     )
     _drain_stream(observed)
 
     expected_copies = [
-        (SOURCE_ROOT / src, DESTINATION_ROOT / dst) for src, dst in expected_actions
+        (source_root / src, destination_root / dst) for src, dst in expected_actions
     ]
     assert observed_copies == expected_copies
 
@@ -76,6 +77,8 @@ def test_apply_sync_plan_copies_non_skip(
     ],
 )
 def test_print_sync_plan_formats_lines(
+    source_root: Path,
+    destination_root: Path,
     operations: list[tuple[str, SyncAction]],
     expected_lines: list[str],
 ) -> None:
@@ -84,14 +87,26 @@ def test_print_sync_plan_formats_lines(
     output = StringIO()
     observed = print_sync_plan(
         stream,
-        source_root=SOURCE_ROOT,
-        destination_root=DESTINATION_ROOT,
+        source_root=source_root,
+        destination_root=destination_root,
         output=output,
     )
     _drain_stream(observed)
 
     lines = output.getvalue().splitlines()
     assert lines == expected_lines
+
+
+@pytest.fixture
+def source_root() -> Path:
+    """Virtual source root for sync tests."""
+    return Path("/virtual/source")
+
+
+@pytest.fixture
+def destination_root() -> Path:
+    """Virtual destination root for sync tests."""
+    return Path("/virtual/destination")
 
 
 def _make_sync_op(filename: str, action: SyncAction) -> SyncOperation:

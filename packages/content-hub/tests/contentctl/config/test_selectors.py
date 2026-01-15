@@ -3,7 +3,8 @@ from pathlib import Path
 import pytest
 
 from contentctl.config import ResolvedConfig, select_workspaces
-from tests.contentctl.fixtures import make_workspace
+
+from tests.contentctl.fixture_types import MakeWorkspace
 
 
 @pytest.mark.parametrize(
@@ -16,6 +17,7 @@ from tests.contentctl.fixtures import make_workspace
     ],
 )
 def test_select_workspaces_preserves_order(
+    make_workspace: MakeWorkspace,
     selection_order: list[str],
     expected_order: list[str],
 ) -> None:

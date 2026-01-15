@@ -7,11 +7,19 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from tests.contentctl.fixtures import DEFAULT_PATH, fixture_path, make_workspace
 from contentctl.config import Workspace
 from contentctl.operations import adopt as adopt_mod
 from contentctl.operations.adopt import run_adopt
 from contentctl.plan.sync import SyncAction, SyncOperation
+
+from tests.contentctl.fixture_types import MakeWorkspace
+from tests.fixture_types import FixturePath
+
+
+@pytest.fixture
+def origin(make_workspace: MakeWorkspace) -> Workspace:
+    """Origin workspace for adopt tests."""
+    return make_workspace("", Path("/origin"))
 
 
 @pytest.mark.parametrize(
@@ -25,6 +33,9 @@ from contentctl.plan.sync import SyncAction, SyncOperation
 )
 def test_run_adopt_applies_plan(
     monkeypatch: pytest.MonkeyPatch,
+    fixture_path: FixturePath,
+    make_workspace: MakeWorkspace,
+    origin: Workspace,
     dry_run: bool,
     verbose: bool,
 ) -> None:
@@ -78,8 +89,8 @@ def test_run_adopt_applies_plan(
     asyncio.run(
         run_adopt(
             workspace=make_workspace("docs", "/ws"),
-            origin=ORIGIN,
-            path=DEFAULT_PATH,
+            origin=origin,
+            path=".",
             dry_run=dry_run,
             verbose=verbose,
             output=output,
@@ -90,6 +101,3 @@ def test_run_adopt_applies_plan(
     assert "adopt docs:" in text
     assert "1 files copied" in text
     assert execute_calls == [(dry_run, verbose)]
-
-
-ORIGIN = Workspace(name="", path=Path("/origin"), include=(), exclude=())

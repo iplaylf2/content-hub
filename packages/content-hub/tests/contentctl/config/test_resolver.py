@@ -1,7 +1,4 @@
-from pathlib import Path
-
 import pytest
-import yaml
 
 from contentctl.config import (
     ConfigError,
@@ -9,7 +6,9 @@ from contentctl.config import (
     select_all_workspaces,
     select_workspaces,
 )
-from tests.contentctl.fixtures import fixture_path
+
+from tests.fixture_types import FixturePath
+from .fixture_types import LoadYamlFixture
 
 
 @pytest.mark.parametrize(
@@ -24,12 +23,14 @@ from tests.contentctl.fixtures import fixture_path
     ],
 )
 def test_resolve_config_origin_patterns(
+    fixture_path: FixturePath,
+    load_yaml_fixture: LoadYamlFixture,
     fixture_name: str,
     expected_origin_include: tuple[str, ...],
     expected_origin_exclude: tuple[str, ...],
 ) -> None:
     config_path = fixture_path(fixture_name)
-    config = _load_fixture(config_path)
+    config = load_yaml_fixture(config_path)
     base_dir = config_path.parent
 
     resolved = resolve_config(config, config_path)
@@ -69,13 +70,15 @@ def test_resolve_config_origin_patterns(
     ],
 )
 def test_resolve_config_workspace_patterns(
+    fixture_path: FixturePath,
+    load_yaml_fixture: LoadYamlFixture,
     fixture_name: str,
     workspace_name: str,
     expected_include: tuple[str, ...],
     expected_exclude: tuple[str, ...],
 ) -> None:
     config_path = fixture_path(fixture_name)
-    config = _load_fixture(config_path)
+    config = load_yaml_fixture(config_path)
     base_dir = config_path.parent
 
     resolved = resolve_config(config, config_path)
@@ -93,10 +96,13 @@ def test_resolve_config_workspace_patterns(
     ],
 )
 def test_select_all_workspaces_sorted(
-    fixture_name: str, expected_names: list[str]
+    fixture_path: FixturePath,
+    load_yaml_fixture: LoadYamlFixture,
+    fixture_name: str,
+    expected_names: list[str],
 ) -> None:
     config_path = fixture_path(fixture_name)
-    config = _load_fixture(config_path)
+    config = load_yaml_fixture(config_path)
 
     resolved = resolve_config(config, config_path)
     names = [workspace.name for workspace in select_all_workspaces(resolved)]
@@ -104,14 +110,12 @@ def test_select_all_workspaces_sorted(
     assert names == expected_names
 
 
-def test_select_workspaces_unknown() -> None:
+def test_select_workspaces_unknown(
+    fixture_path: FixturePath, load_yaml_fixture: LoadYamlFixture
+) -> None:
     config_path = fixture_path("resolver_unknown.yaml")
-    config = _load_fixture(config_path)
+    config = load_yaml_fixture(config_path)
     resolved = resolve_config(config, config_path)
 
     with pytest.raises(ConfigError):
         select_workspaces(resolved, ["missing"])
-
-
-def _load_fixture(path: Path) -> dict[str, object]:
-    return yaml.safe_load(path.read_text(encoding="utf-8"))

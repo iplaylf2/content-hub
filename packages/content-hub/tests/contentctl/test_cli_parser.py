@@ -1,8 +1,11 @@
 from pathlib import Path
+
 import pytest
 
-from tests.contentctl.fixtures import DEFAULT_CONFIG_NAME, DEFAULT_PATH
 from contentctl.cli_parser import AdoptContext, DeployContext, parse_cli
+
+
+DEFAULT_CONFIG_NAME = "content-hub.yaml"
 
 
 @pytest.mark.parametrize(
@@ -29,12 +32,12 @@ from contentctl.cli_parser import AdoptContext, DeployContext, parse_cli
             ["deploy", "--all-workspaces"],
             DeployContext,
             "deploy",
-            DEFAULT_PATH,
+            ".",
             True,
             [],
             None,
         ),
-        (["adopt", "docs"], AdoptContext, "adopt", DEFAULT_PATH, None, None, "docs"),
+        (["adopt", "docs"], AdoptContext, "adopt", ".", None, None, "docs"),
     ],
 )
 def test_parse_cli_success(
