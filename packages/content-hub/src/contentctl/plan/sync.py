@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import AsyncIterable, AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 import re
 
-from contentctl.utils import map_concurrent, stream_taskgroup
+from contentctl.utils import stream_taskgroup
 
 
 async def plan_sync(
@@ -21,46 +21,30 @@ async def plan_sync(
     semaphore: asyncio.Semaphore,
     delete: bool = False,
 ) -> AsyncIterator[SyncOperation]:
-    source_files = _select_files(
-        source_path,
-        source_include,
-        source_exclude,
-        semaphore,
-    )
-
-    destination_root = (
-        destination_path.parent if source_path.is_file() else destination_path
-    )
-
-    if delete and destination_root.exists():
-        source_root = source_path if source_path.is_dir() else source_path.parent
-        destination_files = _select_files(
+    if source_path.is_file():
+        operation = _plan_sync_single_file(
+            source_path,
             destination_path,
-            destination_include,
-            destination_exclude,
-            semaphore,
-        )
-        async for operation in _plan_operations_with_delete(
-            source_files,
-            source_root,
             source_include,
             source_exclude,
-            destination_files,
-            destination_root,
             destination_include,
             destination_exclude,
-            semaphore,
-        ):
+        )
+        if operation:
             yield operation
-    else:
-        async for operation in _plan_operations(
-            source_files,
-            destination_root,
-            destination_include,
-            destination_exclude,
-            semaphore,
-        ):
-            yield operation
+        return
+
+    async for operation in _plan_sync_directories(
+        source_path,
+        destination_path,
+        source_include,
+        source_exclude,
+        destination_include,
+        destination_exclude,
+        semaphore,
+        delete,
+    ):
+        yield operation
 
 
 def resolve_sync_paths(
@@ -91,6 +75,180 @@ class SyncAction(str, Enum):
     DELETE = "DELETE"
 
 
+@dataclass(frozen=True)
+class _DirectoryEntries:
+    files: set[Path]
+    subdirs: set[Path]
+
+
+def _plan_sync_single_file(
+    source_path: Path,
+    destination_path: Path,
+    source_include: tuple[str, ...],
+    source_exclude: tuple[str, ...],
+    destination_include: tuple[str, ...],
+    destination_exclude: tuple[str, ...],
+) -> SyncOperation | None:
+    rel_path = Path(source_path.name)
+
+    if not _is_managed(rel_path, source_include, source_exclude):
+        return None
+
+    if not _is_managed(rel_path, destination_include, destination_exclude):
+        return SyncOperation(relative=rel_path, action=SyncAction.SKIP)
+
+    action = SyncAction.REPLACE if destination_path.exists() else SyncAction.COPY
+    return SyncOperation(relative=rel_path, action=action)
+
+
+async def _plan_sync_directories(
+    source_root: Path,
+    destination_root: Path,
+    source_include: tuple[str, ...],
+    source_exclude: tuple[str, ...],
+    destination_include: tuple[str, ...],
+    destination_exclude: tuple[str, ...],
+    semaphore: asyncio.Semaphore,
+    delete: bool,
+) -> AsyncIterator[SyncOperation]:
+    source_prune_exclude = _prune_exclude_patterns(source_exclude)
+    destination_prune_exclude = _prune_exclude_patterns(destination_exclude)
+
+    async def build(
+        tg: asyncio.TaskGroup,
+        queue: asyncio.Queue[SyncOperation | BaseException | None],
+    ) -> None:
+        async def process_directory_pair(
+            source_dir: Path | None,
+            dest_dir: Path | None,
+            rel_dir: Path,
+        ) -> None:
+            source_pruned = _should_prune_dir(rel_dir, source_prune_exclude)
+            dest_pruned = _should_prune_dir(rel_dir, destination_prune_exclude)
+
+            if source_pruned and (not delete or dest_pruned):
+                return
+
+            if source_dir is not None and not source_pruned:
+                source_entries = await _scan_directory_single(source_dir, semaphore)
+            else:
+                source_entries = _DirectoryEntries(files=set(), subdirs=set())
+
+            if dest_dir is not None and not (delete and dest_pruned):
+                dest_entries = await _scan_directory_single(dest_dir, semaphore)
+            else:
+                dest_entries = _DirectoryEntries(files=set(), subdirs=set())
+
+            for operation in _plan_file_propagation(
+                rel_dir,
+                source_entries.files,
+                dest_entries.files,
+                source_include,
+                source_exclude,
+                destination_include,
+                destination_exclude,
+            ):
+                await queue.put(operation)
+
+            if delete:
+                for operation in _plan_file_cleanup(
+                    rel_dir,
+                    source_entries.files,
+                    dest_entries.files,
+                    source_include,
+                    source_exclude,
+                ):
+                    await queue.put(operation)
+
+            all_subdir_names = source_entries.subdirs | dest_entries.subdirs
+
+            for subdir_name in all_subdir_names:
+                subdir_rel_path = rel_dir / subdir_name
+
+                in_source = subdir_name in source_entries.subdirs
+                in_dest = subdir_name in dest_entries.subdirs
+
+                source_subdir = (
+                    (source_dir / subdir_name) if (source_dir and in_source) else None
+                )
+                dest_subdir = (
+                    (dest_dir / subdir_name) if (dest_dir and in_dest) else None
+                )
+
+                tg.create_task(
+                    process_directory_pair(source_subdir, dest_subdir, subdir_rel_path)
+                )
+
+        tg.create_task(process_directory_pair(source_root, destination_root, Path(".")))
+
+    async for operation in stream_taskgroup(build):
+        yield operation
+
+
+async def _scan_directory_single(
+    source_dir: Path,
+    semaphore: asyncio.Semaphore,
+) -> _DirectoryEntries:
+    async with semaphore:
+        source_subdirs, source_files = await asyncio.to_thread(
+            _list_directory_entries, source_dir
+        )
+
+    return _DirectoryEntries(
+        files={f.relative_to(source_dir) for f in source_files},
+        subdirs={d.relative_to(source_dir) for d in source_subdirs},
+    )
+
+
+def _plan_file_propagation(
+    rel_dir: Path,
+    source_files: set[Path],
+    dest_files: set[Path],
+    source_include: tuple[str, ...],
+    source_exclude: tuple[str, ...],
+    destination_include: tuple[str, ...],
+    destination_exclude: tuple[str, ...],
+) -> Iterator[SyncOperation]:
+    for file_name in source_files:
+        file_rel_path = rel_dir / file_name
+
+        if not _is_managed(file_rel_path, source_include, source_exclude):
+            continue
+
+        if not _is_managed(file_rel_path, destination_include, destination_exclude):
+            yield SyncOperation(relative=file_rel_path, action=SyncAction.SKIP)
+            continue
+
+        action = SyncAction.REPLACE if file_name in dest_files else SyncAction.COPY
+        yield SyncOperation(relative=file_rel_path, action=action)
+
+
+def _plan_file_cleanup(
+    rel_dir: Path,
+    source_files: set[Path],
+    dest_files: set[Path],
+    source_include: tuple[str, ...],
+    source_exclude: tuple[str, ...],
+) -> Iterator[SyncOperation]:
+    for file_name in dest_files - source_files:
+        file_rel_path = rel_dir / file_name
+
+        if _is_managed(file_rel_path, source_include, source_exclude):
+            yield SyncOperation(relative=file_rel_path, action=SyncAction.DELETE)
+
+
+def _list_directory_entries(path: Path) -> tuple[list[Path], list[Path]]:
+    subdirs: list[Path] = []
+    files: list[Path] = []
+    with os.scandir(path) as iterator:
+        for entry in iterator:
+            if entry.is_dir(follow_symlinks=False):
+                subdirs.append(Path(entry.path))
+            else:
+                files.append(Path(entry.path))
+    return subdirs, files
+
+
 def _resolve_subpath(base: Path, subpath: str) -> Path:
     candidate = Path(subpath)
     if candidate.is_absolute():
@@ -112,122 +270,11 @@ def _validate_sync_paths(source_path: Path, destination_path: Path) -> None:
         raise SyncError(f"Source path not found: {source_path}")
 
 
-async def _select_files(
-    path: Path,
-    include: tuple[str, ...],
-    exclude: tuple[str, ...],
-    scan_semaphore: asyncio.Semaphore,
-) -> AsyncIterator[Path]:
-    if path.is_file():
-        rel_path = Path(path.name)
-        if _is_selected(rel_path, include, exclude):
-            yield rel_path
-        return
-
-    prune_exclude = _prune_exclude_patterns(exclude)
-    async for file in _list_directory_files(path, prune_exclude, scan_semaphore):
-        rel_path = file.relative_to(path)
-        if _is_selected(rel_path, include, exclude):
-            yield rel_path
-
-
-async def _plan_operations(
-    source_files: AsyncIterable[Path],
-    destination_root: Path,
-    destination_include: tuple[str, ...],
-    destination_exclude: tuple[str, ...],
-    semaphore: asyncio.Semaphore,
-) -> AsyncIterator[SyncOperation]:
-    async def decide(rel_path: Path) -> SyncOperation:
-        if not _is_selected(rel_path, destination_include, destination_exclude):
-            return SyncOperation(relative=rel_path, action=SyncAction.SKIP)
-
-        destination = destination_root / rel_path
-        exists = await asyncio.to_thread(destination.exists)
-        action = SyncAction.REPLACE if exists else SyncAction.COPY
-        return SyncOperation(relative=rel_path, action=action)
-
-    async for operation in map_concurrent(source_files, decide, semaphore):
-        yield operation
-
-
-async def _plan_operations_with_delete(
-    source_files: AsyncIterable[Path],
-    source_root: Path,
-    source_include: tuple[str, ...],
-    source_exclude: tuple[str, ...],
-    destination_files: AsyncIterable[Path],
-    destination_root: Path,
-    destination_include: tuple[str, ...],
-    destination_exclude: tuple[str, ...],
-    semaphore: asyncio.Semaphore,
-) -> AsyncIterator[SyncOperation]:
-    async def build(
-        tg: asyncio.TaskGroup,
-        queue: asyncio.Queue[SyncOperation | BaseException | None],
-    ) -> None:
-        async def plan_propagation() -> None:
-            sync_ops = _plan_operations(
-                source_files,
-                destination_root,
-                destination_include,
-                destination_exclude,
-                semaphore,
-            )
-            async for operation in sync_ops:
-                await queue.put(operation)
-
-        async def plan_cleanup() -> None:
-            async for rel_path in destination_files:
-                if _is_selected(rel_path, source_include, source_exclude):
-                    source_file = source_root / rel_path
-                    exists = await asyncio.to_thread(source_file.exists)
-                    if not exists:
-                        await queue.put(
-                            SyncOperation(relative=rel_path, action=SyncAction.DELETE)
-                        )
-
-        tg.create_task(plan_propagation())
-        tg.create_task(plan_cleanup())
-
-    async for operation in stream_taskgroup(build):
-        yield operation
-
-
 def _paths_overlap(path_a: Path, path_b: Path) -> bool:
     return path_a == path_b or path_a in path_b.parents or path_b in path_a.parents
 
 
-async def _list_directory_files(
-    root: Path,
-    prune_exclude: tuple[str, ...],
-    scan_semaphore: asyncio.Semaphore,
-) -> AsyncIterator[Path]:
-    async def build(
-        tg: asyncio.TaskGroup,
-        queue: asyncio.Queue[Path | BaseException | None],
-    ) -> None:
-        async def scan_dir(path: Path) -> None:
-            rel_dir = path.relative_to(root)
-            if _should_prune_dir(rel_dir, prune_exclude):
-                return
-            async with scan_semaphore:
-                subdirs, files = await asyncio.to_thread(_list_directory_entries, path)
-            for subdir in subdirs:
-                rel_subdir = subdir.relative_to(root)
-                if _should_prune_dir(rel_subdir, prune_exclude):
-                    continue
-                tg.create_task(scan_dir(subdir))
-            for file in files:
-                await queue.put(file)
-
-        tg.create_task(scan_dir(root))
-
-    async for path in stream_taskgroup(build):
-        yield path
-
-
-def _is_selected(
+def _is_managed(
     rel_path: Path,
     include: tuple[str, ...],
     exclude: tuple[str, ...],
@@ -275,18 +322,6 @@ def _matches_pattern(rel_path: Path, pattern: str) -> bool:
 
 def _has_glob_magic(pattern: str) -> bool:
     return any(char in pattern for char in "*?[")
-
-
-def _list_directory_entries(path: Path) -> tuple[list[Path], list[Path]]:
-    subdirs: list[Path] = []
-    files: list[Path] = []
-    with os.scandir(path) as iterator:
-        for entry in iterator:
-            if entry.is_dir(follow_symlinks=False):
-                subdirs.append(Path(entry.path))
-            else:
-                files.append(Path(entry.path))
-    return subdirs, files
 
 
 @lru_cache(maxsize=256)
