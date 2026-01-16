@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 import re
 
-from contentctl.utils import stream_taskgroup
+from contentctl.utils import stream_concurrently, Emit, Spawn
 
 
 async def plan_sync(
@@ -114,74 +114,68 @@ async def _plan_sync_directories(
     source_prune_exclude = _prune_exclude_patterns(source_exclude)
     destination_prune_exclude = _prune_exclude_patterns(destination_exclude)
 
-    async def build(
-        tg: asyncio.TaskGroup,
-        queue: asyncio.Queue[SyncOperation | BaseException | None],
-    ) -> None:
-        async def process_directory_pair(
-            source_dir: Path | None,
-            dest_dir: Path | None,
-            rel_dir: Path,
-        ) -> None:
-            source_pruned = _should_prune_dir(rel_dir, source_prune_exclude)
-            dest_pruned = _should_prune_dir(rel_dir, destination_prune_exclude)
+    async def process_directory_pair(
+        source_dir: Path | None,
+        dest_dir: Path | None,
+        rel_dir: Path,
+    ) -> AsyncIterator[Emit[SyncOperation] | Spawn[SyncOperation]]:
+        source_pruned = _should_prune_dir(rel_dir, source_prune_exclude)
+        dest_pruned = _should_prune_dir(rel_dir, destination_prune_exclude)
 
-            if source_pruned and (not delete or dest_pruned):
-                return
+        if source_pruned and (not delete or dest_pruned):
+            return
 
-            if source_dir is not None and not source_pruned:
-                source_entries = await _scan_directory_single(source_dir, semaphore)
-            else:
-                source_entries = _DirectoryEntries(files=set(), subdirs=set())
+        if source_dir is not None and not source_pruned:
+            source_entries = await _scan_directory_single(source_dir, semaphore)
+        else:
+            source_entries = _DirectoryEntries(files=set(), subdirs=set())
 
-            if dest_dir is not None and not (delete and dest_pruned):
-                dest_entries = await _scan_directory_single(dest_dir, semaphore)
-            else:
-                dest_entries = _DirectoryEntries(files=set(), subdirs=set())
+        if dest_dir is not None and not (delete and dest_pruned):
+            dest_entries = await _scan_directory_single(dest_dir, semaphore)
+        else:
+            dest_entries = _DirectoryEntries(files=set(), subdirs=set())
 
-            for operation in _plan_file_propagation(
+        for operation in _plan_file_propagation(
+            rel_dir,
+            source_entries.files,
+            dest_entries.files,
+            source_include,
+            source_exclude,
+            destination_include,
+            destination_exclude,
+        ):
+            yield Emit(operation)
+
+        if delete:
+            for operation in _plan_file_cleanup(
                 rel_dir,
                 source_entries.files,
                 dest_entries.files,
                 source_include,
                 source_exclude,
-                destination_include,
-                destination_exclude,
             ):
-                await queue.put(operation)
+                yield Emit(operation)
 
-            if delete:
-                for operation in _plan_file_cleanup(
-                    rel_dir,
-                    source_entries.files,
-                    dest_entries.files,
-                    source_include,
-                    source_exclude,
-                ):
-                    await queue.put(operation)
+        all_subdir_names = source_entries.subdirs | dest_entries.subdirs
 
-            all_subdir_names = source_entries.subdirs | dest_entries.subdirs
+        for subdir_name in all_subdir_names:
+            subdir_rel_path = rel_dir / subdir_name
 
-            for subdir_name in all_subdir_names:
-                subdir_rel_path = rel_dir / subdir_name
+            in_source = subdir_name in source_entries.subdirs
+            in_dest = subdir_name in dest_entries.subdirs
 
-                in_source = subdir_name in source_entries.subdirs
-                in_dest = subdir_name in dest_entries.subdirs
+            source_subdir = (
+                (source_dir / subdir_name) if (source_dir and in_source) else None
+            )
+            dest_subdir = (dest_dir / subdir_name) if (dest_dir and in_dest) else None
 
-                source_subdir = (
-                    (source_dir / subdir_name) if (source_dir and in_source) else None
-                )
-                dest_subdir = (
-                    (dest_dir / subdir_name) if (dest_dir and in_dest) else None
-                )
+            yield Spawn(
+                process_directory_pair(source_subdir, dest_subdir, subdir_rel_path)
+            )
 
-                tg.create_task(
-                    process_directory_pair(source_subdir, dest_subdir, subdir_rel_path)
-                )
-
-        tg.create_task(process_directory_pair(source_root, destination_root, Path(".")))
-
-    async for operation in stream_taskgroup(build):
+    async for operation in stream_concurrently(
+        process_directory_pair(source_root, destination_root, Path("."))
+    ):
         yield operation
 
 
