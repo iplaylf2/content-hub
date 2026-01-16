@@ -69,9 +69,25 @@ def test_resolve_sync_paths_rejects_missing_source(
 
 
 @pytest.mark.parametrize(
-    ("source", "dest"),
+    (
+        "source",
+        "dest",
+        "source_include",
+        "source_exclude",
+        "destination_include",
+        "destination_exclude",
+        "expected_files",
+    ),
     [
-        (("plan_sync", "source_multi"), ("plan_sync", "destination_single")),
+        (
+            ("plan_sync", "source_multi"),
+            ("plan_sync", "destination_single"),
+            ("*.txt", "**/*.txt"),
+            ("sub/*",),
+            ("*.txt", "**/*.txt"),
+            (),
+            {"guide.txt"},
+        ),
     ],
 )
 def test_plan_sync_applies_include_exclude(
@@ -80,6 +96,11 @@ def test_plan_sync_applies_include_exclude(
     collect_operations: CollectOperations,
     source: tuple[str, ...],
     dest: tuple[str, ...],
+    source_include: tuple[str, ...],
+    source_exclude: tuple[str, ...],
+    destination_include: tuple[str, ...],
+    destination_exclude: tuple[str, ...],
+    expected_files: set[str],
 ) -> None:
     source_root = fixture_path(*source)
     destination_root = fixture_path(*dest)
@@ -92,23 +113,24 @@ def test_plan_sync_applies_include_exclude(
     operations = plan_sync(
         source_path=source_path,
         destination_path=destination_path,
-        source_include=("*.txt", "**/*.txt"),
-        source_exclude=("sub/*",),
-        destination_include=("*.txt", "**/*.txt"),
-        destination_exclude=(),
+        source_include=source_include,
+        source_exclude=source_exclude,
+        destination_include=destination_include,
+        destination_exclude=destination_exclude,
         **plan_semaphores(),
     )
 
     collected = collect_operations(operations)
     paths = {op.relative.name for op in collected}
 
-    assert paths == {"guide.txt"}
+    assert paths == expected_files
 
 
 @pytest.mark.parametrize(
     (
         "source",
         "dest",
+        "filename",
         "source_exclude",
         "expected_count",
         "expected_action",
@@ -117,6 +139,7 @@ def test_plan_sync_applies_include_exclude(
         (
             ("plan_sync", "source_single"),
             ("plan_sync", "destination_single"),
+            "note.txt",
             (),
             1,
             SyncAction.REPLACE,
@@ -124,6 +147,7 @@ def test_plan_sync_applies_include_exclude(
         (
             ("plan_sync", "source_single"),
             ("plan_sync", "destination_single"),
+            "note.txt",
             ("*.txt",),
             0,
             None,
@@ -137,6 +161,7 @@ def test_plan_sync_file_source(
     make_sync_op: Callable[[str, SyncAction], SyncOperation],
     source: tuple[str, ...],
     dest: tuple[str, ...],
+    filename: str,
     source_exclude: tuple[str, ...],
     expected_count: int,
     expected_action: SyncAction | None,
@@ -147,7 +172,7 @@ def test_plan_sync_file_source(
     source_path, destination_path = resolve_sync_paths(
         source_root=source_root,
         destination_root=destination_root,
-        path="note.txt",
+        path=filename,
     )
     operations = plan_sync(
         source_path=source_path,
@@ -162,7 +187,7 @@ def test_plan_sync_file_source(
     collected = collect_operations(operations)
     if expected_count > 0:
         assert expected_action is not None
-        expected = [make_sync_op("note.txt", expected_action)]
+        expected = [make_sync_op(filename, expected_action)]
         assert collected == expected
     else:
         assert collected == []
@@ -254,6 +279,108 @@ def test_resolve_sync_paths_rejects_overlapping_paths(
             destination_root=fixture_path(*dest),
             path=path,
         )
+
+
+@pytest.mark.parametrize(
+    ("source", "dest", "expected_actions"),
+    [
+        (
+            ("plan_sync", "source_multi"),
+            ("plan_sync", "destination_with_extra"),
+            {
+                "old.txt": SyncAction.DELETE,
+                "guide.txt": SyncAction.REPLACE,
+            },
+        ),
+    ],
+)
+def test_plan_sync_with_delete_removes_unmanaged_files(
+    fixture_path: FixturePath,
+    plan_semaphores: PlanSemaphores,
+    collect_operations: CollectOperations,
+    source: tuple[str, ...],
+    dest: tuple[str, ...],
+    expected_actions: dict[str, SyncAction],
+) -> None:
+    source_root = fixture_path(*source)
+    destination_root = fixture_path(*dest)
+
+    source_path, destination_path = resolve_sync_paths(
+        source_root=source_root,
+        destination_root=destination_root,
+        path=".",
+    )
+    operations = plan_sync(
+        source_path=source_path,
+        destination_path=destination_path,
+        source_include=(),
+        source_exclude=(),
+        destination_include=(),
+        destination_exclude=(),
+        delete=True,
+        **plan_semaphores(),
+    )
+
+    collected = collect_operations(operations)
+    actions = {str(op.relative): op.action for op in collected}
+
+    for file, action in expected_actions.items():
+        assert actions[file] is action
+
+
+@pytest.mark.parametrize(
+    ("source", "dest", "source_include", "destination_include", "expected_actions"),
+    [
+        (
+            ("plan_sync", "source_multi"),
+            ("plan_sync", "destination_with_extra"),
+            ("*.txt", "**/*.txt"),
+            ("*.txt", "**/*.txt"),
+            {
+                "old.txt": SyncAction.DELETE,
+                "guide.txt": SyncAction.REPLACE,
+                "readme.md": None,
+            },
+        ),
+    ],
+)
+def test_plan_sync_with_delete_respects_selector_intersection(
+    fixture_path: FixturePath,
+    plan_semaphores: PlanSemaphores,
+    collect_operations: CollectOperations,
+    source: tuple[str, ...],
+    dest: tuple[str, ...],
+    source_include: tuple[str, ...],
+    destination_include: tuple[str, ...],
+    expected_actions: dict[str, SyncAction | None],
+) -> None:
+    source_root = fixture_path(*source)
+    destination_root = fixture_path(*dest)
+
+    source_path, destination_path = resolve_sync_paths(
+        source_root=source_root,
+        destination_root=destination_root,
+        path=".",
+    )
+    operations = plan_sync(
+        source_path=source_path,
+        destination_path=destination_path,
+        source_include=source_include,
+        source_exclude=(),
+        destination_include=destination_include,
+        destination_exclude=(),
+        delete=True,
+        **plan_semaphores(),
+    )
+
+    collected = collect_operations(operations)
+    actions = {str(op.relative): op.action for op in collected}
+
+    for file, action in expected_actions.items():
+        if action is None:
+            assert file not in actions
+        else:
+            assert actions[file] is action
 
 
 @pytest.fixture

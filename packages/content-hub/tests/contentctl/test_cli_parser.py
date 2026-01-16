@@ -20,12 +20,12 @@ DEFAULT_CONFIG_NAME = "content-hub.yaml"
     ),
     [
         (
-            ["deploy", "docs", "--path", "api"],
+            ["deploy", "virtual-workspace", "--path", "virtual-subdir"],
             DeployContext,
             "deploy",
-            "api",
+            "virtual-subdir",
             False,
-            ["docs"],
+            ["virtual-workspace"],
             None,
         ),
         (
@@ -37,7 +37,15 @@ DEFAULT_CONFIG_NAME = "content-hub.yaml"
             [],
             None,
         ),
-        (["adopt", "docs"], AdoptContext, "adopt", ".", None, None, "docs"),
+        (
+            ["adopt", "virtual-workspace"],
+            AdoptContext,
+            "adopt",
+            ".",
+            None,
+            None,
+            "virtual-workspace",
+        ),
     ],
 )
 def test_parse_cli_success(
@@ -66,10 +74,10 @@ def test_parse_cli_success(
 @pytest.mark.parametrize(
     "argv",
     [
-        ["deploy", "docs", "--all-workspaces"],
+        ["deploy", "virtual-workspace", "--all-workspaces"],
         ["deploy"],
         ["deploy", ""],
-        ["deploy", "docs", "--path", "   "],
+        ["deploy", "virtual-workspace", "--path", "   "],
         ["adopt", ""],
     ],
 )
@@ -93,7 +101,7 @@ def test_parse_cli_accepts_config_path(
 ) -> None:
     config_path = fixture_dir / config_arg
     arg = str(config_path) if use_absolute else config_arg
-    ctx = parse_cli(["--config", arg, "deploy", "docs"], fixture_dir)
+    ctx = parse_cli(["--config", arg, "deploy", "virtual-workspace"], fixture_dir)
 
     if use_absolute:
         assert ctx.config_path == config_path.resolve()
@@ -116,7 +124,25 @@ def test_parse_cli_sets_flags(
     expected_dry_run: bool,
     expected_verbose: bool,
 ) -> None:
-    ctx = parse_cli([*flags, "deploy", "docs"], fixture_dir)
+    ctx = parse_cli([*flags, "deploy", "virtual-workspace"], fixture_dir)
 
     assert ctx.dry_run is expected_dry_run
     assert ctx.verbose is expected_verbose
+
+
+@pytest.mark.parametrize(
+    ("argv", "expected_delete"),
+    [
+        (["deploy", "virtual-workspace", "--delete"], True),
+        (["deploy", "virtual-workspace"], False),
+    ],
+)
+def test_parse_cli_sets_delete_flag(
+    fixture_dir: Path,
+    argv: list[str],
+    expected_delete: bool,
+) -> None:
+    ctx = parse_cli(argv, fixture_dir)
+
+    assert isinstance(ctx, DeployContext)
+    assert ctx.delete is expected_delete

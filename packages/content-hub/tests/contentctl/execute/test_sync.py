@@ -62,19 +62,76 @@ def test_apply_sync_plan_copies_non_skip(
 
 
 @pytest.mark.parametrize(
+    ("operations", "expected_deletions"),
+    [
+        (
+            [("old.txt", SyncAction.DELETE), ("keep.txt", SyncAction.SKIP)],
+            ["old.txt"],
+        ),
+        (
+            [("a.txt", SyncAction.DELETE), ("b.txt", SyncAction.DELETE)],
+            ["a.txt", "b.txt"],
+        ),
+    ],
+)
+def test_apply_sync_plan_deletes_files(
+    monkeypatch: pytest.MonkeyPatch,
+    source_root: Path,
+    destination_root: Path,
+    make_sync_op: Callable[[str, SyncAction], SyncOperation],
+    make_stream: Callable[..., AsyncIterator[SyncOperation]],
+    drain_stream: Callable[[AsyncIterator[SyncOperation]], None],
+    operations: list[tuple[str, SyncAction]],
+    expected_deletions: list[str],
+) -> None:
+    observed_deletions: list[Path] = []
+
+    def observe_unlink(self: Path) -> None:
+        observed_deletions.append(self)
+
+    def exists_stub(self: Path) -> bool:
+        return True
+
+    unlink_mock = create_autospec(Path.unlink, side_effect=observe_unlink)
+    exists_mock = create_autospec(Path.exists, side_effect=exists_stub)
+
+    monkeypatch.setattr(Path, "unlink", unlink_mock)
+    monkeypatch.setattr(Path, "exists", exists_mock)
+
+    stream = make_stream(*[make_sync_op(path, action) for path, action in operations])
+
+    observed = apply_sync_plan(
+        stream,
+        source_root=source_root,
+        destination_root=destination_root,
+        semaphore=asyncio.Semaphore(2),
+    )
+    drain_stream(observed)
+
+    expected_paths = [destination_root / path for path in expected_deletions]
+    assert observed_deletions == expected_paths
+
+
+@pytest.mark.parametrize(
     ("operations", "expected_lines"),
     [
         (
             [("guide.txt", SyncAction.COPY), ("drafts.txt", SyncAction.SKIP)],
             [
-                "COPY    /virtual/source/guide.txt -> /virtual/destination/guide.txt",
-                "SKIP    /virtual/source/drafts.txt -> /virtual/destination/drafts.txt",
+                "COPY    /virtual/destination/guide.txt",
+                "SKIP    /virtual/destination/drafts.txt",
             ],
         ),
         (
             [("readme.md", SyncAction.REPLACE)],
             [
-                "REPLACE /virtual/source/readme.md -> /virtual/destination/readme.md",
+                "REPLACE /virtual/destination/readme.md",
+            ],
+        ),
+        (
+            [("old.txt", SyncAction.DELETE)],
+            [
+                "DELETE  /virtual/destination/old.txt",
             ],
         ),
     ],

@@ -37,6 +37,7 @@ def deploy_ctx(config_path: Path) -> DeployCtxFactory:
         path: str = ".",
         dry_run: bool = False,
         verbose: bool = False,
+        delete: bool = False,
     ) -> DeployContext:
         return DeployContext(
             command="deploy",
@@ -46,6 +47,7 @@ def deploy_ctx(config_path: Path) -> DeployCtxFactory:
             path=path,
             dry_run=dry_run,
             verbose=verbose,
+            delete=delete,
         )
 
     return _make
@@ -247,6 +249,30 @@ def test_main_dispatches_deploy_all_workspaces(
     call_kwargs = run_deploy_mock.call_args.kwargs
     assert "workspaces" in call_kwargs
     assert call_kwargs["verbose"] is verbose
+
+
+@pytest.mark.parametrize(
+    "delete",
+    [True, False],
+)
+def test_main_dispatches_deploy_with_delete(
+    monkeypatch: pytest.MonkeyPatch,
+    deploy_ctx: DeployCtxFactory,
+    resolved_config: ResolvedConfig,
+    patch_main_context: PatchMainContext,
+    delete: bool,
+) -> None:
+    ctx = deploy_ctx(delete=delete)
+
+    run_deploy_mock = create_autospec(mainmod.run_deploy)
+    monkeypatch.setattr(mainmod, "run_deploy", run_deploy_mock)
+    patch_main_context(ctx=ctx, resolved=resolved_config)
+
+    mainmod.main()
+
+    run_deploy_mock.assert_called_once()
+    call_kwargs = run_deploy_mock.call_args.kwargs
+    assert call_kwargs["delete"] is delete
 
 
 @pytest.mark.parametrize(
