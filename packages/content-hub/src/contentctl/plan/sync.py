@@ -118,13 +118,9 @@ async def _plan_sync_directories(
         source_dir: Path | None,
         dest_dir: Path | None,
         rel_dir: Path,
+        source_pruned: bool,
+        dest_pruned: bool,
     ) -> AsyncIterator[Emit[SyncOperation] | Spawn[SyncOperation]]:
-        source_pruned = _should_prune_dir(rel_dir, source_prune_exclude)
-        dest_pruned = _should_prune_dir(rel_dir, destination_prune_exclude)
-
-        if source_pruned and (not delete or dest_pruned):
-            return
-
         if source_dir is not None and not source_pruned:
             source_entries = await _scan_directory_single(source_dir, semaphore)
         else:
@@ -169,12 +165,32 @@ async def _plan_sync_directories(
             )
             dest_subdir = (dest_dir / subdir_name) if (dest_dir and in_dest) else None
 
+            sub_source_pruned = _should_prune_dir(subdir_rel_path, source_prune_exclude)
+            sub_dest_pruned = _should_prune_dir(
+                subdir_rel_path, destination_prune_exclude
+            )
+
+            if sub_source_pruned and (not delete or sub_dest_pruned):
+                continue
+
             yield Spawn(
-                process_directory_pair(source_subdir, dest_subdir, subdir_rel_path)
+                process_directory_pair(
+                    source_subdir,
+                    dest_subdir,
+                    subdir_rel_path,
+                    sub_source_pruned,
+                    sub_dest_pruned,
+                )
             )
 
     async for operation in stream_concurrently(
-        process_directory_pair(source_root, destination_root, Path("."))
+        process_directory_pair(
+            source_root,
+            destination_root,
+            Path("."),
+            False,
+            False,
+        )
     ):
         yield operation
 
