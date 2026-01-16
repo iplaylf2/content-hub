@@ -14,9 +14,11 @@ Test at boundaries, not through layers:
 
 ### Test Data
 
-Tests read from fixtures in `tests/_fixtures` but never write to disk. Use `monkeypatch` to observe side effects without real I/O.
+Tests read from fixture in `tests/_fixture` but never write to disk. Use `monkeypatch` to observe side effects without real I/O.
 
-When tests need file inputs, prepare real files in `tests/_fixtures`. Don't simulate file content with strings.
+When tests need file inputs, prepare real files in `tests/_fixture`. Don't simulate file content with strings. Use descriptive names that reveal the fixture's purpose or state (e.g., `source_multi`, `destination_with_extra`). For nonexistent resources, use clear prefixes like `nonexistent_` to signal absence from the name itself.
+
+For arbitrary values in test parameters that don't reference fixture, use explicit virtual prefixes (e.g., `virtual-resource`) to clarify they don't depend on actual fixture files.
 
 ### Parametrization
 
