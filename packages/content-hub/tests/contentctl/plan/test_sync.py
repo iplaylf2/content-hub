@@ -317,7 +317,7 @@ def test_plan_sync_with_delete_removes_unmanaged_files(
         source_exclude=(),
         destination_include=(),
         destination_exclude=(),
-        delete=True,
+        allow_delete=True,
         **plan_semaphores(),
     )
 
@@ -369,7 +369,7 @@ def test_plan_sync_with_delete_respects_selector_intersection(
         source_exclude=(),
         destination_include=destination_include,
         destination_exclude=(),
-        delete=True,
+        allow_delete=True,
         **plan_semaphores(),
     )
 

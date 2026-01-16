@@ -19,7 +19,7 @@ async def plan_sync(
     destination_include: tuple[str, ...],
     destination_exclude: tuple[str, ...],
     semaphore: asyncio.Semaphore,
-    delete: bool = False,
+    allow_delete: bool = False,
 ) -> AsyncIterator[SyncOperation]:
     if source_path.is_file():
         operation = _plan_sync_single_file(
@@ -42,7 +42,7 @@ async def plan_sync(
         destination_include,
         destination_exclude,
         semaphore,
-        delete,
+        allow_delete=allow_delete,
     ):
         yield operation
 
@@ -109,7 +109,7 @@ async def _plan_sync_directories(
     destination_include: tuple[str, ...],
     destination_exclude: tuple[str, ...],
     semaphore: asyncio.Semaphore,
-    delete: bool,
+    allow_delete: bool,
 ) -> AsyncIterator[SyncOperation]:
     source_prune_exclude = _prune_exclude_patterns(source_exclude)
     destination_prune_exclude = _prune_exclude_patterns(destination_exclude)
@@ -126,7 +126,7 @@ async def _plan_sync_directories(
         else:
             source_entries = _DirectoryEntries(files=set(), subdirs=set())
 
-        if dest_dir is not None and not (delete and dest_pruned):
+        if dest_dir is not None and not (allow_delete and dest_pruned):
             dest_entries = await _scan_directory_single(dest_dir, semaphore)
         else:
             dest_entries = _DirectoryEntries(files=set(), subdirs=set())
@@ -142,7 +142,7 @@ async def _plan_sync_directories(
         ):
             yield Emit(operation)
 
-        if delete:
+        if allow_delete:
             for operation in _plan_file_cleanup(
                 rel_dir,
                 source_entries.files,
@@ -170,7 +170,7 @@ async def _plan_sync_directories(
                 subdir_rel_path, destination_prune_exclude
             )
 
-            if sub_source_pruned and (not delete or sub_dest_pruned):
+            if sub_source_pruned and (not allow_delete or sub_dest_pruned):
                 continue
 
             yield Spawn(

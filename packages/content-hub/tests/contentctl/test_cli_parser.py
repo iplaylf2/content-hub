@@ -145,4 +145,4 @@ def test_parse_cli_sets_delete_flag(
     ctx = parse_cli(argv, fixture_dir)
 
     assert isinstance(ctx, DeployContext)
-    assert ctx.delete is expected_delete
+    assert ctx.allow_delete is expected_delete

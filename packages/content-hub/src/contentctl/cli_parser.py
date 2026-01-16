@@ -26,7 +26,7 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
                 all_workspaces=all_workspaces,
                 workspaces=workspaces,
                 path=args.path,
-                delete=args.delete,
+                allow_delete=args.delete,
                 dry_run=args.dry_run,
                 verbose=args.verbose,
             )
@@ -69,7 +69,7 @@ class DeployContext(BaseContext):
     all_workspaces: bool
     workspaces: list[str]
     path: str
-    delete: bool
+    allow_delete: bool
 
 
 @dataclass(frozen=True)

@@ -37,7 +37,7 @@ def deploy_ctx(config_path: Path) -> DeployCtxFactory:
         path: str = ".",
         dry_run: bool = False,
         verbose: bool = False,
-        delete: bool = False,
+        allow_delete: bool = False,
     ) -> DeployContext:
         return DeployContext(
             command="deploy",
@@ -47,7 +47,7 @@ def deploy_ctx(config_path: Path) -> DeployCtxFactory:
             path=path,
             dry_run=dry_run,
             verbose=verbose,
-            delete=delete,
+            allow_delete=allow_delete,
         )
 
     return _make
@@ -262,7 +262,7 @@ def test_main_dispatches_deploy_with_delete(
     patch_main_context: PatchMainContext,
     delete: bool,
 ) -> None:
-    ctx = deploy_ctx(delete=delete)
+    ctx = deploy_ctx(allow_delete=delete)
 
     run_deploy_mock = create_autospec(mainmod.run_deploy)
     monkeypatch.setattr(mainmod, "run_deploy", run_deploy_mock)
@@ -272,7 +272,7 @@ def test_main_dispatches_deploy_with_delete(
 
     run_deploy_mock.assert_called_once()
     call_kwargs = run_deploy_mock.call_args.kwargs
-    assert call_kwargs["delete"] is delete
+    assert call_kwargs["allow_delete"] is delete
 
 
 @pytest.mark.parametrize(
