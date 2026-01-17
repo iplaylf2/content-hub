@@ -93,20 +93,20 @@ def test_apply_sync_plan_applies_actions(
         (
             [("guide.txt", SyncAction.COPY), ("drafts.txt", SyncAction.SKIP)],
             [
-                "COPY    /virtual/destination/guide.txt",
-                "SKIP    /virtual/destination/drafts.txt",
+                "copy    /virtual/destination/guide.txt",
+                "skip    /virtual/destination/drafts.txt",
             ],
         ),
         (
             [("readme.md", SyncAction.REPLACE)],
             [
-                "REPLACE /virtual/destination/readme.md",
+                "replace /virtual/destination/readme.md",
             ],
         ),
         (
             [("old.txt", SyncAction.DELETE)],
             [
-                "DELETE  /virtual/destination/old.txt",
+                "delete  /virtual/destination/old.txt",
             ],
         ),
     ],
