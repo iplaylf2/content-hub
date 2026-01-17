@@ -1,5 +1,6 @@
 import asyncio
-from typing import Iterable, TextIO
+from collections.abc import Iterable
+from typing import TextIO
 
 from contentctl.config import Workspace
 from contentctl.operation_kit import execute_sync_operation, resolve_sync_roots

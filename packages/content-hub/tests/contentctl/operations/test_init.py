@@ -3,7 +3,6 @@ from pathlib import Path
 from unittest.mock import create_autospec
 
 import pytest
-
 from contentctl.gateway.defaults import DEFAULT_CONFIG_FILENAME
 from contentctl.operations.init import run_init
 from tests.fixture_types import FixturePath

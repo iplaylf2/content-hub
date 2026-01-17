@@ -1,9 +1,10 @@
 """CLI parsing and context resolution for contentctl."""
 
 import argparse
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Literal
+from typing import Literal
 
 from .defaults import (
     DEFAULT_CONFIG_FILENAME,

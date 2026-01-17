@@ -1,6 +1,6 @@
-from pathlib import Path
 import sys
 from collections.abc import Callable
+from pathlib import Path
 
 import pytest
 

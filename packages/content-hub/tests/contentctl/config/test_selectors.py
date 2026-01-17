@@ -1,9 +1,7 @@
 from pathlib import Path
 
 import pytest
-
 from contentctl.config import ResolvedConfig, select_workspaces
-
 from tests.contentctl.fixture_types import MakeWorkspace
 
 

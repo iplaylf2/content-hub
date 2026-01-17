@@ -5,10 +5,8 @@ from typing import Any
 from unittest.mock import create_autospec
 
 import pytest
-
 from contentctl.plan import SyncAction, SyncError, plan_sync, resolve_sync_paths
 from contentctl.plan.sync import SyncOperation
-
 from tests.fixture_types import FixturePath
 
 type PlanSemaphores = Callable[[], dict[str, Any]]
@@ -437,9 +435,7 @@ def test_plan_sync_file_source_copies_when_destination_missing(
     )
 
     def exists_stub(self: Path) -> bool:
-        if self == destination_path:
-            return False
-        return True
+        return self != destination_path
 
     exists_mock = create_autospec(Path.exists, side_effect=exists_stub)
     monkeypatch.setattr(Path, "exists", exists_mock)

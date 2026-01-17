@@ -1,6 +1,7 @@
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, Mapping, cast
+from typing import Any, cast
 
 
 def resolve_config(config: dict[str, Any], config_path: Path) -> ResolvedConfig:

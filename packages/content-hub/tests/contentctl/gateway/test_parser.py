@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from contentctl.gateway import AdoptContext, DeployContext, InitContext, parse_cli
 from contentctl.gateway.defaults import (
     DEFAULT_CONFIG_FILENAME,

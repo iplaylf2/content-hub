@@ -1,8 +1,7 @@
-import sys
 import asyncio
+import sys
 from pathlib import Path
 
-from .gateway import AdoptContext, DeployContext, InitContext, parse_cli
 from .config import (
     ConfigError,
     ResolvedConfig,
@@ -11,6 +10,7 @@ from .config import (
     select_all_workspaces,
     select_workspaces,
 )
+from .gateway import AdoptContext, DeployContext, InitContext, parse_cli
 from .operations import SyncError, run_adopt, run_deploy, run_init
 
 

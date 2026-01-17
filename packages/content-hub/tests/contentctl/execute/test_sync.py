@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import create_autospec
 
 import pytest
-
 from contentctl.execute.sync import apply_sync_plan, print_sync_plan
 from contentctl.plan.sync import SyncAction, SyncOperation
 

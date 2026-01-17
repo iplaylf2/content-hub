@@ -1,12 +1,12 @@
 import asyncio
+import glob
+import os
+import re
 from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
-import glob
-import os
 from pathlib import Path
-import re
 
 from contentctl.utils.concurrent import Emit, Spawn, stream_concurrently
 
@@ -291,9 +291,9 @@ def _is_managed(
 ) -> bool:
     if exclude and any(_matches_pattern(rel_path, pattern) for pattern in exclude):
         return False
-    if include and not any(_matches_pattern(rel_path, pattern) for pattern in include):
-        return False
-    return True
+    return not include or any(
+        _matches_pattern(rel_path, pattern) for pattern in include
+    )
 
 
 def _prune_exclude_patterns(exclude: tuple[str, ...]) -> tuple[str, ...]:
@@ -319,10 +319,7 @@ def _should_prune_dir(
 ) -> bool:
     if not prune_exclude:
         return False
-    for pattern in prune_exclude:
-        if _matches_pattern(rel_dir, pattern):
-            return True
-    return False
+    return any(_matches_pattern(rel_dir, pattern) for pattern in prune_exclude)
 
 
 def _matches_pattern(rel_path: Path, pattern: str) -> bool:

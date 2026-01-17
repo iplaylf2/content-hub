@@ -4,8 +4,8 @@ from collections.abc import AsyncIterable, AsyncIterator
 from pathlib import Path
 from typing import TextIO
 
-from contentctl.utils.concurrent import map_concurrent
 from contentctl.plan.sync import SyncAction, SyncOperation
+from contentctl.utils.concurrent import map_concurrent
 
 
 async def print_sync_plan(

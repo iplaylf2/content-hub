@@ -1,11 +1,11 @@
 """Config loading and validation for contentctl."""
 
+import json
+import os
 from collections import UserDict
 from collections.abc import Iterable
 from functools import lru_cache
 from importlib.resources import files
-import json
-import os
 from pathlib import Path
 from string import Template
 from typing import Any, Protocol, cast

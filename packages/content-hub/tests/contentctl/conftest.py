@@ -3,11 +3,10 @@
 from pathlib import Path
 
 import pytest
-
 from contentctl.config import Workspace
 from contentctl.plan.sync import SyncAction, SyncOperation
 
-from .fixture_types import MakeWorkspace, MakeSyncOp
+from .fixture_types import MakeSyncOp, MakeWorkspace
 
 
 @pytest.fixture

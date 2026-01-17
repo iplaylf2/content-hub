@@ -3,7 +3,7 @@ import contextlib
 import os
 from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 _Item = TypeVar("_Item")
 _Result = TypeVar("_Result")
@@ -102,13 +102,13 @@ async def stream_concurrently(
 
 
 @dataclass(slots=True)
-class Emit(Generic[_Item]):
-    value: _Item
+class Emit[T]:
+    value: T
 
 
 @dataclass(slots=True)
-class Spawn(Generic[_Item]):
-    iterator: AsyncIterator[Emit[_Item] | Spawn[_Item]]
+class Spawn[T]:
+    iterator: AsyncIterator[Emit[T] | Spawn[T]]
     semaphore: asyncio.Semaphore | None = None
 
 

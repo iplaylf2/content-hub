@@ -1,7 +1,6 @@
 from typing import Any
 
 import pytest
-
 from contentctl.config import ConfigError, load_config
 from tests.fixture_types import FixturePath
 

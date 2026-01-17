@@ -6,13 +6,11 @@ from typing import TextIO, cast
 from unittest.mock import create_autospec
 
 import pytest
-
 from contentctl.operations import adopt as adopt_mod
-from contentctl.operations.adopt import run_adopt
 from contentctl.operations import deploy as deploy_mod
+from contentctl.operations.adopt import run_adopt
 from contentctl.operations.deploy import run_deploy
 from contentctl.plan.sync import SyncAction, SyncOperation
-
 from tests.contentctl.fixture_types import MakeWorkspace
 from tests.fixture_types import FixturePath
 

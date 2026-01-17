@@ -1,4 +1,4 @@
-from typing import Iterable
+from collections.abc import Iterable
 
 from .loader import ConfigError
 from .resolver import ResolvedConfig, Workspace

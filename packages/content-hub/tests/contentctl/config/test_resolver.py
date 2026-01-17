@@ -1,13 +1,12 @@
 import pytest
-
 from contentctl.config import (
     ConfigError,
     resolve_config,
     select_all_workspaces,
     select_workspaces,
 )
-
 from tests.fixture_types import FixturePath
+
 from .fixture_types import LoadYamlFixture
 
 

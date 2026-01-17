@@ -3,12 +3,11 @@ from pathlib import Path
 from typing import Protocol
 from unittest.mock import create_autospec
 
-import pytest
-
 import contentctl.__main__ as mainmod
+import pytest
+from contentctl.config import ResolvedConfig
 from contentctl.gateway import AdoptContext, DeployContext, InitContext
 from contentctl.gateway.defaults import DEFAULT_CONFIG_FILENAME
-from contentctl.config import ResolvedConfig
 
 from .fixture_types import MakeWorkspace
 
