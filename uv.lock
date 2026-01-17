@@ -41,7 +41,7 @@ wheels = [
 [[package]]
 name = "content-hub"
 version = "0.1.0"
-source = { virtual = "packages/content-hub" }
+source = { editable = "packages/content-hub" }
 dependencies = [
     { name = "jsonschema" },
     { name = "pyyaml" },

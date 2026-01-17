@@ -101,6 +101,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="contentctl",
         description="Manage directory content across multiple locations.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "-c",
@@ -162,6 +163,7 @@ def _add_deploy_parser(
     parser = add_parser(
         "deploy",
         help="Copy content from origin to workspace.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--all-workspaces",
@@ -183,9 +185,26 @@ def _add_adopt_parser(
     parser = add_parser(
         "adopt",
         help="Copy content from workspace to origin.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     _add_workspace_arg(parser)
     _add_path_arg(parser)
+
+
+def _add_init_parser(
+    add_parser: Callable[..., argparse.ArgumentParser],
+) -> None:
+    parser = add_parser(
+        "init",
+        help=f"Create a new {DEFAULT_CONFIG_FILENAME} config file.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "path",
+        nargs="?",
+        default=DEFAULT_INIT_DIR,
+        help=f"Target directory for {DEFAULT_CONFIG_FILENAME}.",
+    )
 
 
 def _add_workspace_arg(
@@ -204,20 +223,5 @@ def _add_path_arg(parser: argparse.ArgumentParser) -> None:
         "-p",
         "--path",
         default=DEFAULT_WORKSPACE_SUBPATH,
-        help="Relative subpath inside both origin and workspace roots.",
-    )
-
-
-def _add_init_parser(
-    add_parser: Callable[..., argparse.ArgumentParser],
-) -> None:
-    parser = add_parser(
-        "init",
-        help=f"Create a new {DEFAULT_CONFIG_FILENAME} config file.",
-    )
-    parser.add_argument(
-        "path",
-        nargs="?",
-        default=DEFAULT_INIT_DIR,
-        help=f"Target directory for {DEFAULT_CONFIG_FILENAME}.",
+        help="Relative subpath within origin and workspace roots.",
     )
