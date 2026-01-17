@@ -29,7 +29,6 @@ async def execute_sync_operation(
     if dry_run:
         return await _count_planned_operations(
             stream,
-            source_root,
             destination_root,
             operation_name,
             workspace_name,
@@ -50,13 +49,12 @@ async def execute_sync_operation(
 
 async def _count_planned_operations(
     stream: AsyncIterable[SyncOperation],
-    source_root: Path,
     destination_root: Path,
     operation_name: str,
     workspace_name: str,
     output: TextIO,
 ) -> int:
-    stream = print_sync_plan(stream, source_root, destination_root, output)
+    stream = print_sync_plan(stream, destination_root, output)
     total = await count_stream(stream)
     print(
         f"{operation_name} {workspace_name}: planned {total} files",
@@ -76,7 +74,7 @@ async def _execute_and_count_copied(
     output: TextIO,
 ) -> int:
     if verbose:
-        stream = print_sync_plan(stream, source_root, destination_root, output)
+        stream = print_sync_plan(stream, destination_root, output)
 
     stream = apply_sync_plan(stream, source_root, destination_root, semaphore)
     total = await count_stream(

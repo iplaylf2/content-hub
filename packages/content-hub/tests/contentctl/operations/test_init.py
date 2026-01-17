@@ -22,7 +22,7 @@ def test_init_dry_run_skips_write(
     observed_writes: list[str] = []
     init_dir = fixture_path(init_dir_name)
 
-    def observe_write_text(self: Path, content: str, **kwargs: object) -> None:
+    def observe_write_text(_self: Path, content: str, **_kwargs: object) -> None:
         observed_writes.append(content)
 
     write_text_mock = create_autospec(Path.write_text, side_effect=observe_write_text)
@@ -79,7 +79,7 @@ def test_init_writes_config_and_creates_directories(
     observed_writes: list[str] = []
     init_dir = fixture_path(init_dir_name)
 
-    def observe_write_text(self: Path, content: str, **kwargs: object) -> None:
+    def observe_write_text(_self: Path, content: str, **_kwargs: object) -> None:
         observed_writes.append(content)
 
     mkdir_mock = create_autospec(Path.mkdir)

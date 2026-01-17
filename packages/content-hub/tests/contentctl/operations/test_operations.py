@@ -92,7 +92,7 @@ def test_run_adopt_applies_plan(
 ) -> None:
     execute_calls: list[tuple[bool, bool]] = []
 
-    async def observe_execute(*args: object, **kwargs: object) -> int:
+    async def observe_execute(*_args: object, **kwargs: object) -> int:
         execute_calls.append((bool(kwargs.get("dry_run")), bool(kwargs.get("verbose"))))
         if output := kwargs.get("output"):
             operation_name = kwargs.get("operation_name", "")

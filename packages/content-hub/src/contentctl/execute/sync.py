@@ -10,7 +10,6 @@ from contentctl.plan.sync import SyncAction, SyncOperation
 
 async def print_sync_plan(
     operations: AsyncIterable[SyncOperation],
-    source_root: Path,
     destination_root: Path,
     output: TextIO,
 ) -> AsyncIterator[SyncOperation]:

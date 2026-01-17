@@ -56,7 +56,7 @@ def test_apply_sync_plan_applies_actions(
     def observe_unlink(self: Path) -> None:
         observed_deletions.append(self)
 
-    def exists_stub(self: Path) -> bool:
+    def exists_stub(_self: Path) -> bool:
         return True
 
     copy2_mock = create_autospec(shutil.copy2, side_effect=observe_copy)
@@ -103,7 +103,7 @@ def test_apply_sync_plan_skips_delete_when_missing(
     drain_stream: Callable[[AsyncIterator[SyncOperation]], None],
     filename: str,
 ) -> None:
-    def exists_stub(self: Path) -> bool:
+    def exists_stub(_self: Path) -> bool:
         return False
 
     copy2_mock = create_autospec(shutil.copy2)
@@ -156,7 +156,6 @@ def test_apply_sync_plan_skips_delete_when_missing(
     ],
 )
 def test_print_sync_plan_formats_lines(
-    source_root: Path,
     destination_root: Path,
     make_sync_op: Callable[[str, SyncAction], SyncOperation],
     make_stream: Callable[..., AsyncIterator[SyncOperation]],
@@ -169,7 +168,6 @@ def test_print_sync_plan_formats_lines(
     output = StringIO()
     observed = print_sync_plan(
         stream,
-        source_root=source_root,
         destination_root=destination_root,
         output=output,
     )
