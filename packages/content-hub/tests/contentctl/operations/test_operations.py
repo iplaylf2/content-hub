@@ -20,8 +20,6 @@ if TYPE_CHECKING:
 
 @pytest.mark.parametrize(
     (
-        "dry_run",
-        "verbose",
         "source",
         "dest",
         "workspace_name",
@@ -29,11 +27,11 @@ if TYPE_CHECKING:
         "origin_root",
         "sync_path",
         "planned_filename",
+        "dry_run",
+        "verbose",
     ),
     [
         (
-            True,
-            True,
             ("plan_sync", "source_multi"),
             ("plan_sync", "destination_single"),
             "docs",
@@ -41,10 +39,21 @@ if TYPE_CHECKING:
             "/origin",
             ".",
             "guide.txt",
+            True,
+            True,
         ),
         (
+            ("plan_sync", "source_multi"),
+            ("plan_sync", "destination_single"),
+            "docs",
+            "/ws",
+            "/origin",
+            ".",
+            "guide.txt",
             True,
             False,
+        ),
+        (
             ("plan_sync", "source_multi"),
             ("plan_sync", "destination_single"),
             "docs",
@@ -52,21 +61,10 @@ if TYPE_CHECKING:
             "/origin",
             ".",
             "guide.txt",
-        ),
-        (
             False,
             True,
-            ("plan_sync", "source_multi"),
-            ("plan_sync", "destination_single"),
-            "docs",
-            "/ws",
-            "/origin",
-            ".",
-            "guide.txt",
         ),
         (
-            False,
-            False,
             ("plan_sync", "source_multi"),
             ("plan_sync", "destination_single"),
             "docs",
@@ -74,6 +72,8 @@ if TYPE_CHECKING:
             "/origin",
             ".",
             "guide.txt",
+            False,
+            False,
         ),
     ],
 )
@@ -81,8 +81,6 @@ def test_run_adopt_applies_plan(
     monkeypatch: pytest.MonkeyPatch,
     fixture_path: FixturePath,
     make_workspace: MakeWorkspace,
-    dry_run: bool,
-    verbose: bool,
     source: tuple[str, str],
     dest: tuple[str, str],
     workspace_name: str,
@@ -90,6 +88,9 @@ def test_run_adopt_applies_plan(
     origin_root: str,
     sync_path: str,
     planned_filename: str,
+    *,
+    dry_run: bool,
+    verbose: bool,
 ) -> None:
     execute_calls: list[tuple[bool, bool]] = []
 
@@ -157,9 +158,6 @@ def test_run_adopt_applies_plan(
 
 @pytest.mark.parametrize(
     (
-        "dry_run",
-        "verbose",
-        "allow_delete",
         "workspace_names",
         "source_fixture",
         "destination_fixture",
@@ -169,12 +167,12 @@ def test_run_adopt_applies_plan(
         "planned_filename",
         "resolved_source_root",
         "resolved_destination_root",
+        "dry_run",
+        "verbose",
+        "allow_delete",
     ),
     [
         (
-            True,
-            True,
-            True,
             ("docs", "assets"),
             ("plan_sync", "source_multi"),
             ("plan_sync", "destination_single"),
@@ -184,11 +182,11 @@ def test_run_adopt_applies_plan(
             "guide.txt",
             "/source",
             "/destination",
+            True,
+            True,
+            True,
         ),
         (
-            True,
-            False,
-            False,
             ("docs", "assets"),
             ("plan_sync", "source_multi"),
             ("plan_sync", "destination_single"),
@@ -198,11 +196,11 @@ def test_run_adopt_applies_plan(
             "guide.txt",
             "/source",
             "/destination",
+            True,
+            False,
+            False,
         ),
         (
-            False,
-            True,
-            False,
             ("docs", "assets"),
             ("plan_sync", "source_multi"),
             ("plan_sync", "destination_single"),
@@ -212,11 +210,11 @@ def test_run_adopt_applies_plan(
             "guide.txt",
             "/source",
             "/destination",
+            False,
+            True,
+            False,
         ),
         (
-            False,
-            False,
-            True,
             ("docs", "assets"),
             ("plan_sync", "source_multi"),
             ("plan_sync", "destination_single"),
@@ -226,6 +224,9 @@ def test_run_adopt_applies_plan(
             "guide.txt",
             "/source",
             "/destination",
+            False,
+            False,
+            True,
         ),
     ],
 )
@@ -233,9 +234,6 @@ def test_run_deploy_applies_plan(
     monkeypatch: pytest.MonkeyPatch,
     fixture_path: FixturePath,
     make_workspace: MakeWorkspace,
-    dry_run: bool,
-    verbose: bool,
-    allow_delete: bool,
     workspace_names: tuple[str, ...],
     source_fixture: tuple[str, ...],
     destination_fixture: tuple[str, ...],
@@ -245,6 +243,10 @@ def test_run_deploy_applies_plan(
     planned_filename: str,
     resolved_source_root: str,
     resolved_destination_root: str,
+    *,
+    dry_run: bool,
+    verbose: bool,
+    allow_delete: bool,
 ) -> None:
     execute_calls: list[tuple[str, bool, bool]] = []
     allow_delete_calls: list[bool] = []

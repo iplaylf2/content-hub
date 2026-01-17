@@ -33,9 +33,10 @@ def deploy_ctx(config_path: Path) -> DeployCtxFactory:
     """Create DeployContext for testing."""
 
     def _make(
-        all_workspaces: bool = True,
         workspaces: list[str] | None = None,
         path: str = ".",
+        *,
+        all_workspaces: bool = True,
         dry_run: bool = False,
         verbose: bool = False,
         allow_delete: bool = False,
@@ -61,6 +62,7 @@ def adopt_ctx(config_path: Path) -> AdoptCtxFactory:
     def _make(
         workspace: str = "alpha",
         path: str = "docs",
+        *,
         dry_run: bool = False,
         verbose: bool = False,
     ) -> AdoptContext:
@@ -241,6 +243,7 @@ def test_main_dispatches_deploy_with_flags(
     deploy_ctx: DeployCtxFactory,
     resolved_config: ResolvedConfig,
     patch_main_context: PatchMainContext,
+    *,
     verbose: bool,
     delete: bool,
 ) -> None:
@@ -299,12 +302,12 @@ def test_main_dispatches_deploy_selected_workspaces(
 
 
 @pytest.mark.parametrize(
-    ("dry_run", "verbose", "workspace_name", "workspace_path"),
+    ("workspace_name", "workspace_path", "dry_run", "verbose"),
     [
-        (True, True, "alpha", "docs"),
-        (True, False, "alpha", "docs"),
-        (False, True, "alpha", "docs"),
-        (False, False, "alpha", "docs"),
+        ("alpha", "docs", True, True),
+        ("alpha", "docs", True, False),
+        ("alpha", "docs", False, True),
+        ("alpha", "docs", False, False),
     ],
 )
 def test_main_dispatches_adopt_workspace(
@@ -312,10 +315,11 @@ def test_main_dispatches_adopt_workspace(
     adopt_ctx: AdoptCtxFactory,
     resolved_config: ResolvedConfig,
     patch_main_context: PatchMainContext,
-    dry_run: bool,
-    verbose: bool,
     workspace_name: str,
     workspace_path: str,
+    *,
+    dry_run: bool,
+    verbose: bool,
 ) -> None:
     ctx: AdoptContext = adopt_ctx(
         workspace=workspace_name,

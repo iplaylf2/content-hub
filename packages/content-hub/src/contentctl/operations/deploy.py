@@ -17,10 +17,11 @@ async def run_deploy(
     workspaces: Iterable[Workspace],
     origin: Workspace,
     path: str,
+    output: TextIO,
+    *,
     dry_run: bool,
     verbose: bool,
     allow_delete: bool,
-    output: TextIO,
 ) -> None:
     base = default_concurrency()
     io_semaphore = asyncio.Semaphore(base)

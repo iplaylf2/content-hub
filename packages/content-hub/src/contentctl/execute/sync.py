@@ -18,8 +18,8 @@ async def print_sync_plan(
     async for operation in operations:
         _print_operation(
             operation,
-            output,
             destination_root,
+            output,
         )
         yield operation
 
@@ -62,8 +62,8 @@ def _apply_operation(
 
 def _print_operation(
     operation: SyncOperation,
-    output: TextIO,
     destination_root: Path,
+    output: TextIO,
 ) -> None:
     destination = destination_root / operation.relative
     action_label = operation.action.value.lower()

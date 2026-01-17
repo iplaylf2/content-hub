@@ -20,7 +20,7 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
     parser = _build_parser()
     args = parser.parse_args(argv)
 
-    config_path = _resolve_config_path(args.config, cwd)
+    config_path = _resolve_config_path(cwd, args.config)
 
     if not args.path.strip():
         parser.error("path is required.")
@@ -29,7 +29,11 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
         case "deploy":
             workspaces = list(args.workspace or [])
             all_workspaces = bool(args.all_workspaces)
-            _validate_deploy_workspaces(workspaces, all_workspaces, parser)
+            _validate_deploy_workspaces(
+                parser,
+                workspaces,
+                all_workspaces=all_workspaces,
+            )
             return DeployContext(
                 command="deploy",
                 config_path=config_path,
@@ -42,7 +46,7 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
             )
         case "adopt":
             workspace = args.workspace
-            _validate_adopt_workspace(workspace, parser)
+            _validate_adopt_workspace(parser, workspace)
             return AdoptContext(
                 command="adopt",
                 config_path=config_path,
@@ -131,7 +135,7 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _resolve_config_path(config_arg: str, cwd: Path) -> Path:
+def _resolve_config_path(cwd: Path, config_arg: str) -> Path:
     config_path = Path(config_arg)
     if not config_path.is_absolute():
         config_path = cwd / config_path
@@ -139,9 +143,10 @@ def _resolve_config_path(config_arg: str, cwd: Path) -> Path:
 
 
 def _validate_deploy_workspaces(
-    workspaces: list[str],
-    all_workspaces: bool,
     parser: argparse.ArgumentParser,
+    workspaces: list[str],
+    *,
+    all_workspaces: bool,
 ) -> None:
     if all_workspaces and workspaces:
         parser.error("use workspace list or --all-workspaces, not both.")
@@ -153,8 +158,8 @@ def _validate_deploy_workspaces(
 
 
 def _validate_adopt_workspace(
-    workspace: str,
     parser: argparse.ArgumentParser,
+    workspace: str,
 ) -> None:
     if not workspace.strip():
         parser.error("workspace cannot be empty.")

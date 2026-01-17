@@ -19,10 +19,10 @@ VIRTUAL_CONFIG_PATH = "virtual-config.yaml"
         "ctx_type",
         "command",
         "path",
-        "all_workspaces",
         "workspaces",
         "workspace",
         "config_name",
+        "all_workspaces",
     ),
     [
         (
@@ -37,10 +37,10 @@ VIRTUAL_CONFIG_PATH = "virtual-config.yaml"
             DeployContext,
             "deploy",
             VIRTUAL_SUBDIR,
-            False,
             [VIRTUAL_WORKSPACE],
             None,
             VIRTUAL_CONFIG_PATH,
+            False,
         ),
         (
             [
@@ -52,10 +52,10 @@ VIRTUAL_CONFIG_PATH = "virtual-config.yaml"
             DeployContext,
             "deploy",
             ".",
-            True,
             [],
             None,
             VIRTUAL_CONFIG_PATH,
+            True,
         ),
         (
             [
@@ -68,9 +68,9 @@ VIRTUAL_CONFIG_PATH = "virtual-config.yaml"
             "adopt",
             ".",
             None,
-            None,
             VIRTUAL_WORKSPACE,
             VIRTUAL_CONFIG_PATH,
+            None,
         ),
     ],
 )
@@ -80,10 +80,11 @@ def test_parse_cli_success(
     ctx_type: type[DeployContext | AdoptContext],
     command: str,
     path: str,
-    all_workspaces: bool | None,
     workspaces: list[str] | None,
     workspace: str | None,
     config_name: str,
+    *,
+    all_workspaces: bool | None,
 ) -> None:
     ctx = parse_cli(argv, fixture_dir)
 
@@ -114,18 +115,19 @@ def test_parse_cli_rejects_invalid_args(fixture_dir: Path, argv: list[str]) -> N
 
 
 @pytest.mark.parametrize(
-    ("config_arg", "use_absolute", "workspace"),
+    ("config_arg", "workspace", "use_absolute"),
     [
-        (VIRTUAL_CONFIG_PATH, False, VIRTUAL_WORKSPACE),
-        ("virtual/custom/path/config.yaml", False, VIRTUAL_WORKSPACE),
-        (VIRTUAL_CONFIG_PATH, True, VIRTUAL_WORKSPACE),
+        (VIRTUAL_CONFIG_PATH, VIRTUAL_WORKSPACE, False),
+        ("virtual/custom/path/config.yaml", VIRTUAL_WORKSPACE, False),
+        (VIRTUAL_CONFIG_PATH, VIRTUAL_WORKSPACE, True),
     ],
 )
 def test_parse_cli_accepts_config_path(
     fixture_dir: Path,
     config_arg: str,
-    use_absolute: bool,
     workspace: str,
+    *,
+    use_absolute: bool,
 ) -> None:
     config_path = fixture_dir / config_arg
     arg = str(config_path) if use_absolute else config_arg
@@ -160,6 +162,7 @@ def test_parse_cli_sets_flags(
     pre_flags: list[str],
     post_flags: list[str],
     workspace: str,
+    *,
     expected_dry_run: bool,
     expected_verbose: bool,
     expected_delete: bool,
@@ -187,6 +190,7 @@ def test_parse_cli_init_resolves_paths(
     fixture_dir: Path,
     argv: list[str],
     expected_path: Path,
+    *,
     expected_is_absolute: bool,
 ) -> None:
     ctx = parse_cli(argv, fixture_dir)
@@ -212,6 +216,7 @@ def test_parse_cli_init_resolves_paths(
 def test_parse_cli_init_sets_flags(
     fixture_dir: Path,
     flags: list[str],
+    *,
     expected_dry_run: bool,
     expected_verbose: bool,
 ) -> None:

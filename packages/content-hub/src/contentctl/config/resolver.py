@@ -13,21 +13,21 @@ def resolve_config(config: dict[str, Any], config_path: Path) -> ResolvedConfig:
     default_exclude = _normalize_patterns(defaults.get("exclude", []))
 
     origin = _resolve_workspace(
-        name="",
-        raw=config["origin"],
         base_dir=base_dir,
         default_include=default_include,
         default_exclude=default_exclude,
+        name="",
+        raw=config["origin"],
     )
 
     workspaces: dict[str, Workspace] = {}
     for name, raw in config["workspaces"].items():
         workspaces[name] = _resolve_workspace(
-            name=name,
-            raw=raw,
             base_dir=base_dir,
             default_include=default_include,
             default_exclude=default_exclude,
+            name=name,
+            raw=raw,
         )
 
     return ResolvedConfig(origin=origin, workspaces=workspaces)
@@ -48,16 +48,16 @@ class ResolvedConfig:
 
 
 def _resolve_workspace(
-    name: str,
-    raw: Any,
     base_dir: Path,
     default_include: list[str],
     default_exclude: list[str],
+    name: str,
+    raw: Any,
 ) -> Workspace:
     raw_value = cast("dict[str, Any] | str", raw)
     match raw_value:
         case str():
-            resolved_path = _resolve_path(raw_value, base_dir)
+            resolved_path = _resolve_path(base_dir, raw_value)
             include = tuple(default_include)
             exclude = tuple(default_exclude)
         case dict():
@@ -65,13 +65,13 @@ def _resolve_workspace(
             path_value = cast("str", raw_dict["path"])
             include_raw = cast("list[str]", raw_dict.get("include", []))
             exclude_raw = cast("list[str]", raw_dict.get("exclude", []))
-            resolved_path = _resolve_path(path_value, base_dir)
+            resolved_path = _resolve_path(base_dir, path_value)
             include = tuple(_normalize_patterns(default_include, include_raw))
             exclude = tuple(_normalize_patterns(default_exclude, exclude_raw))
     return Workspace(name=name, path=resolved_path, include=include, exclude=exclude)
 
 
-def _resolve_path(value: str, base_dir: Path) -> Path:
+def _resolve_path(base_dir: Path, value: str) -> Path:
     path = Path(value)
     if not path.is_absolute():
         path = base_dir / path

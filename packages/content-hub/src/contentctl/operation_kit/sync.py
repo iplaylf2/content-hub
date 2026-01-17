@@ -26,9 +26,10 @@ async def execute_sync_operation(
     semaphore: asyncio.Semaphore,
     operation_name: str,
     workspace_name: str,
+    output: TextIO,
+    *,
     dry_run: bool,
     verbose: bool,
-    output: TextIO,
 ) -> int:
     if dry_run:
         return await _count_planned_operations(
@@ -46,8 +47,8 @@ async def execute_sync_operation(
             semaphore,
             operation_name,
             workspace_name,
-            verbose,
             output,
+            verbose=verbose,
         )
 
 
@@ -74,8 +75,9 @@ async def _execute_and_count_copied(
     semaphore: asyncio.Semaphore,
     operation_name: str,
     workspace_name: str,
-    verbose: bool,
     output: TextIO,
+    *,
+    verbose: bool,
 ) -> int:
     if verbose:
         stream = print_sync_plan(stream, destination_root, output)

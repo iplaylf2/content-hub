@@ -24,6 +24,7 @@ async def plan_sync(
     destination_include: tuple[str, ...],
     destination_exclude: tuple[str, ...],
     semaphore: asyncio.Semaphore,
+    *,
     allow_delete: bool = False,
 ) -> AsyncIterator[SyncOperation]:
     if source_path.is_file():
@@ -114,6 +115,7 @@ async def _plan_sync_directories(
     destination_include: tuple[str, ...],
     destination_exclude: tuple[str, ...],
     semaphore: asyncio.Semaphore,
+    *,
     allow_delete: bool,
 ) -> AsyncIterator[SyncOperation]:
     source_prune_exclude = _prune_exclude_patterns(source_exclude)
@@ -123,6 +125,7 @@ async def _plan_sync_directories(
         source_dir: Path | None,
         dest_dir: Path | None,
         rel_dir: Path,
+        *,
         source_pruned: bool,
         dest_pruned: bool,
     ) -> AsyncIterator[Emit[SyncOperation] | Spawn[SyncOperation]]:
@@ -183,8 +186,8 @@ async def _plan_sync_directories(
                     source_subdir,
                     dest_subdir,
                     subdir_rel_path,
-                    sub_source_pruned,
-                    sub_dest_pruned,
+                    source_pruned=sub_source_pruned,
+                    dest_pruned=sub_dest_pruned,
                 )
             )
 
@@ -193,8 +196,8 @@ async def _plan_sync_directories(
             source_root,
             destination_root,
             Path("."),
-            False,
-            False,
+            source_pruned=False,
+            dest_pruned=False,
         )
     ):
         yield operation

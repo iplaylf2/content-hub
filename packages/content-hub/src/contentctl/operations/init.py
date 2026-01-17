@@ -11,9 +11,10 @@ if TYPE_CHECKING:
 def run_init(
     path: Path,
     config_filename: str,
+    output: TextIO,
+    *,
     dry_run: bool,
     verbose: bool,
-    output: TextIO,
 ) -> None:
     target_dir = path
     config_file = target_dir / config_filename
