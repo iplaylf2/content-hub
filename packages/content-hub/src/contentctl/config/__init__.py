@@ -4,9 +4,9 @@ from .selectors import select_all_workspaces, select_workspaces
 
 __all__ = [
     "ConfigError",
-    "load_config",
     "ResolvedConfig",
     "Workspace",
+    "load_config",
     "resolve_config",
     "select_all_workspaces",
     "select_workspaces",

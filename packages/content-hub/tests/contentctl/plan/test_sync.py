@@ -240,7 +240,7 @@ def test_plan_sync_destination_filtering(
 
     actions = {str(op.relative): op.action for op in collect_operations(operations)}
 
-    expected = {file: action for file, action in expected_actions.items()}
+    expected = dict(expected_actions)
     assert {k: v for k, v in actions.items() if k in expected} == expected
 
 

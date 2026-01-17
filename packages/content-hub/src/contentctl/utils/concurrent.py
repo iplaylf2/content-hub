@@ -53,7 +53,7 @@ async def stream_concurrently(
 
                     await semaphore.acquire()
 
-                    async def driveSem(
+                    async def drive_sem(
                         iterator: AsyncIterator[Emit[_Result] | Spawn[_Result]],
                         semaphore: asyncio.Semaphore,
                     ) -> None:
@@ -63,7 +63,7 @@ async def stream_concurrently(
                             semaphore.release()
 
                     try:
-                        tg.create_task(driveSem(sub_iterator, semaphore))
+                        tg.create_task(drive_sem(sub_iterator, semaphore))
                     except:
                         semaphore.release()
                         raise

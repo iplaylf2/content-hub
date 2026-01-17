@@ -101,4 +101,5 @@ def test_init_writes_config_and_creates_directories(
     assert call_kwargs["parents"] is True
     assert call_kwargs["exist_ok"] is True
     write_text_mock.assert_called_once()
-    assert len(observed_writes) == 1 and observed_writes[0]
+    assert len(observed_writes) == 1
+    assert observed_writes[0]
