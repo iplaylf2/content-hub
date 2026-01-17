@@ -12,6 +12,7 @@ from .defaults import (
     DEFAULT_WORKSPACE_SUBPATH,
 )
 
+
 def parse_cli(argv: list[str], cwd: Path) -> CliContext:
     parser = _build_parser()
     args = parser.parse_args(argv)

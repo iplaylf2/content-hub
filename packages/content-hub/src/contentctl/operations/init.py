@@ -3,6 +3,7 @@ from typing import TextIO
 
 import yaml
 
+
 def run_init(
     path: Path,
     config_filename: str,

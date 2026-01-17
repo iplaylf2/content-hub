@@ -3,10 +3,10 @@ from pathlib import Path
 import pytest
 
 from contentctl.gateway import AdoptContext, DeployContext, parse_cli
-from contentctl.gateway.defaults import DEFAULT_CONFIG_PATH
+
 VIRTUAL_WORKSPACE = "virtual-workspace"
 VIRTUAL_SUBDIR = "virtual-subdir"
-VIRTUAL_CONFIG_NAME = "virtual-config.yaml"
+VIRTUAL_CONFIG_PATH = "virtual-config.yaml"
 
 
 @pytest.mark.parametrize(
@@ -22,34 +22,51 @@ VIRTUAL_CONFIG_NAME = "virtual-config.yaml"
     ),
     [
         (
-            ["deploy", VIRTUAL_WORKSPACE, "--path", VIRTUAL_SUBDIR],
+            [
+                "--config",
+                VIRTUAL_CONFIG_PATH,
+                "deploy",
+                VIRTUAL_WORKSPACE,
+                "--path",
+                VIRTUAL_SUBDIR,
+            ],
             DeployContext,
             "deploy",
             VIRTUAL_SUBDIR,
             False,
             [VIRTUAL_WORKSPACE],
             None,
-            DEFAULT_CONFIG_PATH,
+            VIRTUAL_CONFIG_PATH,
         ),
         (
-            ["deploy", "--all-workspaces"],
+            [
+                "--config",
+                VIRTUAL_CONFIG_PATH,
+                "deploy",
+                "--all-workspaces",
+            ],
             DeployContext,
             "deploy",
             ".",
             True,
             [],
             None,
-            DEFAULT_CONFIG_PATH,
+            VIRTUAL_CONFIG_PATH,
         ),
         (
-            ["adopt", VIRTUAL_WORKSPACE],
+            [
+                "--config",
+                VIRTUAL_CONFIG_PATH,
+                "adopt",
+                VIRTUAL_WORKSPACE,
+            ],
             AdoptContext,
             "adopt",
             ".",
             None,
             None,
             VIRTUAL_WORKSPACE,
-            DEFAULT_CONFIG_PATH,
+            VIRTUAL_CONFIG_PATH,
         ),
     ],
 )
@@ -95,9 +112,9 @@ def test_parse_cli_rejects_invalid_args(fixture_dir: Path, argv: list[str]) -> N
 @pytest.mark.parametrize(
     ("config_arg", "use_absolute", "workspace"),
     [
-        (VIRTUAL_CONFIG_NAME, False, VIRTUAL_WORKSPACE),
+        (VIRTUAL_CONFIG_PATH, False, VIRTUAL_WORKSPACE),
         ("virtual/custom/path/config.yaml", False, VIRTUAL_WORKSPACE),
-        (VIRTUAL_CONFIG_NAME, True, VIRTUAL_WORKSPACE),
+        (VIRTUAL_CONFIG_PATH, True, VIRTUAL_WORKSPACE),
     ],
 )
 def test_parse_cli_accepts_config_path(

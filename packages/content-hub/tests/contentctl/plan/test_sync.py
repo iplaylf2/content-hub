@@ -238,9 +238,6 @@ def test_plan_sync_destination_filtering(
     assert {k: v for k, v in actions.items() if k in expected} == expected
 
 
- 
-
-
 @pytest.mark.parametrize(
     ("source", "dest", "expected_actions"),
     [
