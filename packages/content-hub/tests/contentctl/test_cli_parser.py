@@ -6,6 +6,9 @@ from contentctl.cli_parser import AdoptContext, DeployContext, parse_cli
 
 
 DEFAULT_CONFIG_NAME = "content-hub.yaml"
+VIRTUAL_WORKSPACE = "virtual-workspace"
+VIRTUAL_SUBDIR = "virtual-subdir"
+VIRTUAL_CONFIG_NAME = "virtual-config.yaml"
 
 
 @pytest.mark.parametrize(
@@ -17,16 +20,18 @@ DEFAULT_CONFIG_NAME = "content-hub.yaml"
         "all_workspaces",
         "workspaces",
         "workspace",
+        "config_name",
     ),
     [
         (
-            ["deploy", "virtual-workspace", "--path", "virtual-subdir"],
+            ["deploy", VIRTUAL_WORKSPACE, "--path", VIRTUAL_SUBDIR],
             DeployContext,
             "deploy",
-            "virtual-subdir",
+            VIRTUAL_SUBDIR,
             False,
-            ["virtual-workspace"],
+            [VIRTUAL_WORKSPACE],
             None,
+            DEFAULT_CONFIG_NAME,
         ),
         (
             ["deploy", "--all-workspaces"],
@@ -36,15 +41,17 @@ DEFAULT_CONFIG_NAME = "content-hub.yaml"
             True,
             [],
             None,
+            DEFAULT_CONFIG_NAME,
         ),
         (
-            ["adopt", "virtual-workspace"],
+            ["adopt", VIRTUAL_WORKSPACE],
             AdoptContext,
             "adopt",
             ".",
             None,
             None,
-            "virtual-workspace",
+            VIRTUAL_WORKSPACE,
+            DEFAULT_CONFIG_NAME,
         ),
     ],
 )
@@ -57,13 +64,14 @@ def test_parse_cli_success(
     all_workspaces: bool | None,
     workspaces: list[str] | None,
     workspace: str | None,
+    config_name: str,
 ) -> None:
     ctx = parse_cli(argv, fixture_dir)
 
     assert isinstance(ctx, ctx_type)
     assert ctx.command == command
     assert ctx.path == path
-    assert ctx.config_path == (fixture_dir / DEFAULT_CONFIG_NAME).resolve()
+    assert ctx.config_path == (fixture_dir / config_name).resolve()
     if isinstance(ctx, DeployContext):
         assert ctx.all_workspaces is all_workspaces
         assert ctx.workspaces == workspaces
@@ -74,10 +82,10 @@ def test_parse_cli_success(
 @pytest.mark.parametrize(
     "argv",
     [
-        ["deploy", "virtual-workspace", "--all-workspaces"],
+        ["deploy", VIRTUAL_WORKSPACE, "--all-workspaces"],
         ["deploy"],
         ["deploy", ""],
-        ["deploy", "virtual-workspace", "--path", "   "],
+        ["deploy", VIRTUAL_WORKSPACE, "--path", "   "],
         ["adopt", ""],
     ],
 )
@@ -87,21 +95,22 @@ def test_parse_cli_rejects_invalid_args(fixture_dir: Path, argv: list[str]) -> N
 
 
 @pytest.mark.parametrize(
-    ("config_arg", "use_absolute"),
+    ("config_arg", "use_absolute", "workspace"),
     [
-        ("config.yaml", False),
-        ("custom/path/config.yaml", False),
-        ("config.yaml", True),
+        (VIRTUAL_CONFIG_NAME, False, VIRTUAL_WORKSPACE),
+        ("virtual/custom/path/config.yaml", False, VIRTUAL_WORKSPACE),
+        (VIRTUAL_CONFIG_NAME, True, VIRTUAL_WORKSPACE),
     ],
 )
 def test_parse_cli_accepts_config_path(
     fixture_dir: Path,
     config_arg: str,
     use_absolute: bool,
+    workspace: str,
 ) -> None:
     config_path = fixture_dir / config_arg
     arg = str(config_path) if use_absolute else config_arg
-    ctx = parse_cli(["--config", arg, "deploy", "virtual-workspace"], fixture_dir)
+    ctx = parse_cli(["--config", arg, "deploy", workspace], fixture_dir)
 
     if use_absolute:
         assert ctx.config_path == config_path.resolve()
@@ -110,39 +119,38 @@ def test_parse_cli_accepts_config_path(
 
 
 @pytest.mark.parametrize(
-    ("flags", "expected_dry_run", "expected_verbose"),
+    (
+        "pre_flags",
+        "post_flags",
+        "workspace",
+        "expected_dry_run",
+        "expected_verbose",
+        "expected_delete",
+    ),
     [
-        (["--dry-run", "--verbose"], True, True),
-        (["--dry-run"], True, False),
-        (["--verbose"], False, True),
-        ([], False, False),
+        (["--dry-run", "--verbose"], [], VIRTUAL_WORKSPACE, True, True, False),
+        (["--dry-run"], [], VIRTUAL_WORKSPACE, True, False, False),
+        (["--verbose"], [], VIRTUAL_WORKSPACE, False, True, False),
+        ([], ["--delete"], VIRTUAL_WORKSPACE, False, False, True),
+        ([], [], VIRTUAL_WORKSPACE, False, False, False),
+        (["--dry-run"], ["--delete"], VIRTUAL_WORKSPACE, True, False, True),
     ],
 )
 def test_parse_cli_sets_flags(
     fixture_dir: Path,
-    flags: list[str],
+    pre_flags: list[str],
+    post_flags: list[str],
+    workspace: str,
     expected_dry_run: bool,
     expected_verbose: bool,
-) -> None:
-    ctx = parse_cli([*flags, "deploy", "virtual-workspace"], fixture_dir)
-
-    assert ctx.dry_run is expected_dry_run
-    assert ctx.verbose is expected_verbose
-
-
-@pytest.mark.parametrize(
-    ("argv", "expected_delete"),
-    [
-        (["deploy", "virtual-workspace", "--delete"], True),
-        (["deploy", "virtual-workspace"], False),
-    ],
-)
-def test_parse_cli_sets_delete_flag(
-    fixture_dir: Path,
-    argv: list[str],
     expected_delete: bool,
 ) -> None:
-    ctx = parse_cli(argv, fixture_dir)
+    ctx = parse_cli(
+        [*pre_flags, "deploy", workspace, *post_flags],
+        fixture_dir,
+    )
 
     assert isinstance(ctx, DeployContext)
+    assert ctx.dry_run is expected_dry_run
+    assert ctx.verbose is expected_verbose
     assert ctx.allow_delete is expected_delete

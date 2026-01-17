@@ -27,44 +27,23 @@ type CollectOperations = Callable[[AsyncIterator[SyncOperation]], list[SyncOpera
             ("plan_sync", "destination_single"),
             "../escape",
         ),
+        (("nonexistent_source",), ("nonexistent_destination",), "."),
+        (("plan_sync", "source_multi"), ("plan_sync", "source_multi"), "."),
+        (("plan_sync", "source_multi"), ("plan_sync", "source_multi", "sub"), "."),
+        (("plan_sync", "source_multi", "sub"), ("plan_sync", "source_multi"), "."),
     ],
 )
-def test_resolve_sync_paths_rejects_invalid_paths(
+def test_resolve_sync_paths_rejects_invalid_inputs(
     fixture_path: FixturePath,
     source: tuple[str, ...],
     dest: tuple[str, ...],
     path: str,
 ) -> None:
-    source_root = fixture_path(*source)
-    destination_root = fixture_path(*dest)
-
     with pytest.raises(SyncError):
         resolve_sync_paths(
-            source_root=source_root,
-            destination_root=destination_root,
+            source_root=fixture_path(*source),
+            destination_root=fixture_path(*dest),
             path=path,
-        )
-
-
-@pytest.mark.parametrize(
-    ("source", "dest"),
-    [
-        ("nonexistent_source", "nonexistent_destination"),
-    ],
-)
-def test_resolve_sync_paths_rejects_missing_source(
-    fixture_path: FixturePath,
-    source: str,
-    dest: str,
-) -> None:
-    source_root = fixture_path(source)
-    destination_root = fixture_path(dest)
-
-    with pytest.raises(SyncError):
-        resolve_sync_paths(
-            source_root=source_root,
-            destination_root=destination_root,
-            path=".",
         )
 
 
@@ -259,26 +238,7 @@ def test_plan_sync_destination_filtering(
     assert {k: v for k, v in actions.items() if k in expected} == expected
 
 
-@pytest.mark.parametrize(
-    ("source", "dest", "path"),
-    [
-        (("plan_sync", "source_multi"), ("plan_sync", "source_multi"), "."),
-        (("plan_sync", "source_multi"), ("plan_sync", "source_multi", "sub"), "."),
-        (("plan_sync", "source_multi", "sub"), ("plan_sync", "source_multi"), "."),
-    ],
-)
-def test_resolve_sync_paths_rejects_overlapping_paths(
-    fixture_path: FixturePath,
-    source: tuple[str, ...],
-    dest: tuple[str, ...],
-    path: str,
-) -> None:
-    with pytest.raises(SyncError):
-        resolve_sync_paths(
-            source_root=fixture_path(*source),
-            destination_root=fixture_path(*dest),
-            path=path,
-        )
+ 
 
 
 @pytest.mark.parametrize(

@@ -5,66 +5,71 @@ from unittest.mock import create_autospec
 import pytest
 
 from contentctl.operations.init import run_init
+from tests.fixture_types import FixturePath
 
 
-@pytest.mark.parametrize("dry_run", [True, False])
-def test_init_writes_config_file(
-    fixture_dir: Path, monkeypatch: pytest.MonkeyPatch, dry_run: bool
+@pytest.mark.parametrize("init_dir_name", ["virtual-init"])
+def test_init_dry_run_skips_write(
+    fixture_path: FixturePath, monkeypatch: pytest.MonkeyPatch, init_dir_name: str
 ) -> None:
     observed_writes: list[str] = []
+    init_dir = fixture_path(init_dir_name)
 
     def observe_write_text(self: Path, content: str, **kwargs: object) -> None:
         observed_writes.append(content)
 
-    mkdir_mock = create_autospec(Path.mkdir)
     write_text_mock = create_autospec(Path.write_text, side_effect=observe_write_text)
-    monkeypatch.setattr(Path, "mkdir", mkdir_mock)
     monkeypatch.setattr(Path, "write_text", write_text_mock)
 
     output = StringIO()
     run_init(
-        path=fixture_dir,
-        dry_run=dry_run,
+        path=init_dir,
+        dry_run=True,
         verbose=False,
         output=output,
     )
 
-    if dry_run:
-        write_text_mock.assert_not_called()
-        assert observed_writes == []
-    else:
-        write_text_mock.assert_called_once()
-        assert len(observed_writes) == 1 and observed_writes[0]
+    write_text_mock.assert_not_called()
+    assert observed_writes == []
 
 
+@pytest.mark.parametrize("init_dir_name", ["virtual-init"])
 def test_init_fails_when_file_exists(
-    fixture_dir: Path, monkeypatch: pytest.MonkeyPatch
+    fixture_path: FixturePath, monkeypatch: pytest.MonkeyPatch, init_dir_name: str
 ) -> None:
+    init_dir = fixture_path(init_dir_name)
     exists_mock = create_autospec(Path.exists, return_value=True)
     monkeypatch.setattr(Path, "exists", exists_mock)
 
     output = StringIO()
     with pytest.raises(FileExistsError):
         run_init(
-            path=fixture_dir,
+            path=init_dir,
             dry_run=False,
             verbose=False,
             output=output,
         )
 
 
-def test_init_creates_parent_directories(
-    fixture_dir: Path, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize("init_dir_name", ["virtual-init"])
+def test_init_writes_config_and_creates_directories(
+    fixture_path: FixturePath, monkeypatch: pytest.MonkeyPatch, init_dir_name: str
 ) -> None:
+    observed_writes: list[str] = []
+    init_dir = fixture_path(init_dir_name)
+
+    def observe_write_text(self: Path, content: str, **kwargs: object) -> None:
+        observed_writes.append(content)
+
     mkdir_mock = create_autospec(Path.mkdir)
-    write_text_mock = create_autospec(Path.write_text)
+    write_text_mock = create_autospec(Path.write_text, side_effect=observe_write_text)
 
     monkeypatch.setattr(Path, "mkdir", mkdir_mock)
     monkeypatch.setattr(Path, "write_text", write_text_mock)
 
     output = StringIO()
     run_init(
-        path=fixture_dir,
+        path=init_dir,
         dry_run=False,
         verbose=False,
         output=output,
@@ -74,3 +79,5 @@ def test_init_creates_parent_directories(
     call_kwargs = mkdir_mock.call_args.kwargs
     assert call_kwargs["parents"] is True
     assert call_kwargs["exist_ok"] is True
+    write_text_mock.assert_called_once()
+    assert len(observed_writes) == 1 and observed_writes[0]

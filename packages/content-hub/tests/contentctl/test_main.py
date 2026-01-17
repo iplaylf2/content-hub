@@ -182,10 +182,10 @@ def test_main_exits_on_sync_error(
     ctx = deploy_ctx()
     patch_main_context(ctx=ctx, resolved=resolved_config)
 
-    async def raise_sync_error(_ctx: object, _resolved: object) -> None:
+    async def raise_sync_error(*_args: object, **_kwargs: object) -> None:
         raise mainmod.SyncError(message)
 
-    monkeypatch.setattr(mainmod, "_dispatch", raise_sync_error)
+    monkeypatch.setattr(mainmod, "run_deploy", raise_sync_error)
 
     with pytest.raises(SystemExit) as excinfo:
         mainmod.main()
@@ -227,17 +227,23 @@ def test_main_exits_on_dispatch_config_error(
 
 
 @pytest.mark.parametrize(
-    "verbose",
-    [True, False],
+    ("verbose", "delete"),
+    [
+        (True, True),
+        (True, False),
+        (False, True),
+        (False, False),
+    ],
 )
-def test_main_dispatches_deploy_all_workspaces(
+def test_main_dispatches_deploy_with_flags(
     monkeypatch: pytest.MonkeyPatch,
     deploy_ctx: DeployCtxFactory,
     resolved_config: ResolvedConfig,
     patch_main_context: PatchMainContext,
     verbose: bool,
+    delete: bool,
 ) -> None:
-    ctx = deploy_ctx(verbose=verbose)
+    ctx = deploy_ctx(verbose=verbose, allow_delete=delete)
 
     run_deploy_mock = create_autospec(mainmod.run_deploy)
     monkeypatch.setattr(mainmod, "run_deploy", run_deploy_mock)
@@ -249,29 +255,6 @@ def test_main_dispatches_deploy_all_workspaces(
     call_kwargs = run_deploy_mock.call_args.kwargs
     assert "workspaces" in call_kwargs
     assert call_kwargs["verbose"] is verbose
-
-
-@pytest.mark.parametrize(
-    "delete",
-    [True, False],
-)
-def test_main_dispatches_deploy_with_delete(
-    monkeypatch: pytest.MonkeyPatch,
-    deploy_ctx: DeployCtxFactory,
-    resolved_config: ResolvedConfig,
-    patch_main_context: PatchMainContext,
-    delete: bool,
-) -> None:
-    ctx = deploy_ctx(allow_delete=delete)
-
-    run_deploy_mock = create_autospec(mainmod.run_deploy)
-    monkeypatch.setattr(mainmod, "run_deploy", run_deploy_mock)
-    patch_main_context(ctx=ctx, resolved=resolved_config)
-
-    mainmod.main()
-
-    run_deploy_mock.assert_called_once()
-    call_kwargs = run_deploy_mock.call_args.kwargs
     assert call_kwargs["allow_delete"] is delete
 
 

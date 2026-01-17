@@ -12,69 +12,31 @@ from contentctl.plan.sync import SyncAction, SyncOperation
 
 
 @pytest.mark.parametrize(
-    ("operations", "expected_actions"),
+    ("operations", "expected_copies", "expected_deletions"),
     [
         (
             [("guide.txt", SyncAction.COPY), ("drafts.txt", SyncAction.SKIP)],
             [("guide.txt", "guide.txt")],
+            [],
         ),
         (
             [("readme.md", SyncAction.REPLACE), ("index.html", SyncAction.SKIP)],
             [("readme.md", "readme.md")],
+            [],
         ),
-    ],
-)
-def test_apply_sync_plan_copies_non_skip(
-    monkeypatch: pytest.MonkeyPatch,
-    source_root: Path,
-    destination_root: Path,
-    make_sync_op: Callable[[str, SyncAction], SyncOperation],
-    make_stream: Callable[..., AsyncIterator[SyncOperation]],
-    drain_stream: Callable[[AsyncIterator[SyncOperation]], None],
-    operations: list[tuple[str, SyncAction]],
-    expected_actions: list[tuple[str, str]],
-) -> None:
-    observed_copies: list[tuple[Path, Path]] = []
-
-    def observe_copy(src: Path, dst: Path) -> None:
-        observed_copies.append((src, dst))
-
-    copy2_mock = create_autospec(shutil.copy2, side_effect=observe_copy)
-    mkdir_mock = create_autospec(Path.mkdir)
-
-    monkeypatch.setattr("contentctl.execute.sync.shutil.copy2", copy2_mock)
-    monkeypatch.setattr(Path, "mkdir", mkdir_mock)
-
-    stream = make_stream(*[make_sync_op(path, action) for path, action in operations])
-
-    observed = apply_sync_plan(
-        stream,
-        source_root=source_root,
-        destination_root=destination_root,
-        semaphore=asyncio.Semaphore(2),
-    )
-    drain_stream(observed)
-
-    expected_copies = [
-        (source_root / src, destination_root / dst) for src, dst in expected_actions
-    ]
-    assert observed_copies == expected_copies
-
-
-@pytest.mark.parametrize(
-    ("operations", "expected_deletions"),
-    [
         (
             [("old.txt", SyncAction.DELETE), ("keep.txt", SyncAction.SKIP)],
+            [],
             ["old.txt"],
         ),
         (
             [("a.txt", SyncAction.DELETE), ("b.txt", SyncAction.DELETE)],
+            [],
             ["a.txt", "b.txt"],
         ),
     ],
 )
-def test_apply_sync_plan_deletes_files(
+def test_apply_sync_plan_applies_actions(
     monkeypatch: pytest.MonkeyPatch,
     source_root: Path,
     destination_root: Path,
@@ -82,9 +44,14 @@ def test_apply_sync_plan_deletes_files(
     make_stream: Callable[..., AsyncIterator[SyncOperation]],
     drain_stream: Callable[[AsyncIterator[SyncOperation]], None],
     operations: list[tuple[str, SyncAction]],
+    expected_copies: list[tuple[str, str]],
     expected_deletions: list[str],
 ) -> None:
+    observed_copies: list[tuple[Path, Path]] = []
     observed_deletions: list[Path] = []
+
+    def observe_copy(src: Path, dst: Path) -> None:
+        observed_copies.append((src, dst))
 
     def observe_unlink(self: Path) -> None:
         observed_deletions.append(self)
@@ -92,9 +59,13 @@ def test_apply_sync_plan_deletes_files(
     def exists_stub(self: Path) -> bool:
         return True
 
+    copy2_mock = create_autospec(shutil.copy2, side_effect=observe_copy)
+    mkdir_mock = create_autospec(Path.mkdir)
     unlink_mock = create_autospec(Path.unlink, side_effect=observe_unlink)
     exists_mock = create_autospec(Path.exists, side_effect=exists_stub)
 
+    monkeypatch.setattr("contentctl.execute.sync.shutil.copy2", copy2_mock)
+    monkeypatch.setattr(Path, "mkdir", mkdir_mock)
     monkeypatch.setattr(Path, "unlink", unlink_mock)
     monkeypatch.setattr(Path, "exists", exists_mock)
 
@@ -108,8 +79,12 @@ def test_apply_sync_plan_deletes_files(
     )
     drain_stream(observed)
 
-    expected_paths = [destination_root / path for path in expected_deletions]
-    assert observed_deletions == expected_paths
+    expected_copy_paths = [
+        (source_root / src, destination_root / dst) for src, dst in expected_copies
+    ]
+    expected_delete_paths = [destination_root / path for path in expected_deletions]
+    assert observed_copies == expected_copy_paths
+    assert observed_deletions == expected_delete_paths
 
 
 @pytest.mark.parametrize(
