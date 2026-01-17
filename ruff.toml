@@ -1,6 +1,5 @@
 [lint]
 
-ignore = ["F821"]
 extend-select = [
     "ARG",
     "B",
