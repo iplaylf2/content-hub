@@ -1,0 +1,13 @@
+"""Public defaults that define contentctl's CLI contract."""
+
+DEFAULT_CONFIG_FILENAME = "content-hub.yaml"
+DEFAULT_CONFIG_PATH = DEFAULT_CONFIG_FILENAME
+DEFAULT_INIT_DIR = "."
+DEFAULT_WORKSPACE_SUBPATH = "."
+
+__all__ = [
+    "DEFAULT_CONFIG_FILENAME",
+    "DEFAULT_CONFIG_PATH",
+    "DEFAULT_INIT_DIR",
+    "DEFAULT_WORKSPACE_SUBPATH",
+]

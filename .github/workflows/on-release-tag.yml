@@ -1,0 +1,13 @@
+name: On release tag
+
+on:
+  push:
+    tags:
+      - "v[0-9]*.[0-9]*.[0-9]*"
+
+jobs:
+  todo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: TODO - Pending implementation
+        run: "echo 'TODO: Add workflow steps here'"

@@ -1,0 +1,14 @@
+name: Pre-merge to master
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - master
+
+jobs:
+  todo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: TODO - Pending implementation
+        run: "echo 'TODO: Add workflow steps here'"

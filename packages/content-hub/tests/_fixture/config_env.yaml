@@ -1,0 +1,3 @@
+origin: ${SPACE_STATION}/origin
+workspaces:
+  docs: ${SPACE_STATION}/docs

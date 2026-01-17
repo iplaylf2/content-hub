@@ -3,7 +3,20 @@ name = "content-hub"
 version = "0.1.0"
 description = "A CLI for managing the lifecycle of directory content across multiple locations."
 requires-python = ">=3.14"
-dependencies = ["pyyaml>=6.0.0"]
+dependencies = ["jsonschema>=4.26.0", "pyyaml>=6.0.3"]
 
 [project.scripts]
 contentctl = "contentctl.__main__:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.poe.tasks]
+coverage = "pytest --cov=src"
+lint = "ruff check"
+test = "pytest"
+typecheck = "basedpyright"

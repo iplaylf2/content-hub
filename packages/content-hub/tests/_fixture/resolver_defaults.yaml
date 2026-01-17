@@ -1,0 +1,15 @@
+defaults:
+  include:
+    - ' ./src/** '
+    - 'docs\**'
+  exclude:
+    - ./build/**
+origin: ./origin
+workspaces:
+  docs:
+    path: ./docs
+    include:
+      - api/**
+    exclude:
+      - drafts/**
+  assets: ./assets

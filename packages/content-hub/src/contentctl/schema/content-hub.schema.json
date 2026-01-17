@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "content-hub config. string values support ${VAR} environment expansion.",
+  "properties": {
+    "defaults": {
+      "additionalProperties": false,
+      "description": "defaults applied to origin and every workspace.",
+      "properties": {
+        "exclude": {
+          "description": "exclude globs under the root directory.",
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "include": {
+          "description": "include globs under the root directory.",
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "origin": {
+      "description": "primary content source for the hub.",
+      "oneOf": [
+        {
+          "description": "root directory path.",
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "exclude": {
+              "description": "exclude globs under the root directory.",
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "include": {
+              "description": "include globs under the root directory.",
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "path": {
+              "description": "root directory path.",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "path"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "workspaces": {
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "description": "root directory path.",
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "exclude": {
+                "description": "exclude globs under the root directory.",
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "include": {
+                "description": "include globs under the root directory.",
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "path": {
+                "description": "root directory path.",
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "description": "named workspaces used by content-hub.",
+      "minProperties": 1,
+      "propertyNames": {
+        "description": "workspace alias used by content-hub.",
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "object"
+    }
+  },
+  "required": [
+    "origin",
+    "workspaces"
+  ],
+  "title": "content hub config",
+  "type": "object"
+}

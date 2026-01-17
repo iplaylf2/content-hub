@@ -1,33 +1,80 @@
-"""Module entry point for `python -m contentctl`."""
-
-from __future__ import annotations
-
-import argparse
+import asyncio
 import sys
+from pathlib import Path
 
-
-def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        prog="contentctl",
-        description="Manage directory content across multiple locations.",
-    )
-    subparsers = parser.add_subparsers(dest="command", required=True)
-    subparsers.add_parser("deploy", help="Copy content from source to target.")
-    subparsers.add_parser("adopt", help="Copy content from target to source.")
-
-    return parser.parse_args(argv)
+from .config import (
+    ConfigError,
+    ResolvedConfig,
+    load_config,
+    resolve_config,
+    select_all_workspaces,
+    select_workspaces,
+)
+from .gateway import AdoptContext, DeployContext, InitContext, parse_cli
+from .operations import SyncError, run_adopt, run_deploy, run_init
 
 
 def main() -> None:
-    args = parse_args(sys.argv[1:])
+    ctx = parse_cli(sys.argv[1:], Path.cwd())
 
-    if args.command == "deploy":
-        raise NotImplementedError("deploy is not implemented yet")
-    if args.command == "adopt":
-        raise NotImplementedError("adopt is not implemented yet")
+    # Init command doesn't require existing config
+    if isinstance(ctx, InitContext):
+        try:
+            run_init(
+                path=ctx.path,
+                config_filename=ctx.config_filename,
+                dry_run=ctx.dry_run,
+                verbose=ctx.verbose,
+                output=sys.stdout,
+            )
+        except (ConfigError, FileExistsError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            sys.exit(1)
+        return
 
-    print(f"Unknown command: {args.command}", file=sys.stderr)
-    sys.exit(2)
+    try:
+        raw_config = load_config(ctx.config_path)
+        resolved = resolve_config(raw_config, ctx.config_path)
+    except ConfigError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(2)
+
+    try:
+        asyncio.run(_dispatch(ctx, resolved))
+    except (ConfigError, SyncError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+
+async def _dispatch(
+    ctx: AdoptContext | DeployContext,
+    resolved: ResolvedConfig,
+) -> None:
+    match ctx:
+        case DeployContext():
+            if ctx.all_workspaces:
+                workspaces = select_all_workspaces(resolved)
+            else:
+                workspaces = select_workspaces(resolved, ctx.workspaces)
+            await run_deploy(
+                workspaces=workspaces,
+                origin=resolved.origin,
+                path=ctx.path,
+                dry_run=ctx.dry_run,
+                verbose=ctx.verbose,
+                allow_delete=ctx.allow_delete,
+                output=sys.stdout,
+            )
+        case AdoptContext():
+            workspaces = select_workspaces(resolved, [ctx.workspace])
+            await run_adopt(
+                workspace=workspaces[0],
+                origin=resolved.origin,
+                path=ctx.path,
+                dry_run=ctx.dry_run,
+                verbose=ctx.verbose,
+                output=sys.stdout,
+            )
 
 
 if __name__ == "__main__":

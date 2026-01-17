@@ -1,0 +1,16 @@
+defaults:
+  exclude:
+    - ${ROCKET_LAUNCHPAD}/tmp/*
+origin:
+  path: ${ROCKET_LAUNCHPAD}/origin
+  include:
+    - ${ROCKET_LAUNCHPAD}/docs/*.md
+    - ${MISSING_VAR}/fallback/*.md
+workspaces:
+  docs:
+    path: ${ROCKET_LAUNCHPAD}/docs
+    include:
+      - ${ROCKET_LAUNCHPAD}/docs/*.md
+    exclude:
+      - ${ROCKET_LAUNCHPAD}/docs/drafts/*.md
+  assets: ${ROCKET_LAUNCHPAD}/assets
