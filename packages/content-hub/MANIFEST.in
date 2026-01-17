@@ -1,2 +1,1 @@
 graft src/contentctl/schema
-recursive-exclude src/contentctl/schema *.py
