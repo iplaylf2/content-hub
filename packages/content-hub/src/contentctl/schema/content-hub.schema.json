@@ -1,14 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "Content-hub config. String values support ${VAR} environment expansion.",
+  "description": "content-hub config. string values support ${VAR} environment expansion.",
   "properties": {
     "defaults": {
       "additionalProperties": false,
-      "description": "Defaults applied to origin and every workspace.",
+      "description": "defaults applied to origin and every workspace.",
       "properties": {
         "exclude": {
-          "description": "Exclude globs under the root directory.",
+          "description": "exclude globs under the root directory.",
           "items": {
             "minLength": 1,
             "type": "string"
@@ -16,7 +16,7 @@
           "type": "array"
         },
         "include": {
-          "description": "Include globs under the root directory.",
+          "description": "include globs under the root directory.",
           "items": {
             "minLength": 1,
             "type": "string"
@@ -27,10 +27,10 @@
       "type": "object"
     },
     "origin": {
-      "description": "Primary content source for the hub.",
+      "description": "primary content source for the hub.",
       "oneOf": [
         {
-          "description": "Root directory path.",
+          "description": "root directory path.",
           "minLength": 1,
           "type": "string"
         },
@@ -38,7 +38,7 @@
           "additionalProperties": false,
           "properties": {
             "exclude": {
-              "description": "Exclude globs under the root directory.",
+              "description": "exclude globs under the root directory.",
               "items": {
                 "minLength": 1,
                 "type": "string"
@@ -46,7 +46,7 @@
               "type": "array"
             },
             "include": {
-              "description": "Include globs under the root directory.",
+              "description": "include globs under the root directory.",
               "items": {
                 "minLength": 1,
                 "type": "string"
@@ -54,7 +54,7 @@
               "type": "array"
             },
             "path": {
-              "description": "Root directory path.",
+              "description": "root directory path.",
               "minLength": 1,
               "type": "string"
             }
@@ -70,7 +70,7 @@
       "additionalProperties": {
         "oneOf": [
           {
-            "description": "Root directory path.",
+            "description": "root directory path.",
             "minLength": 1,
             "type": "string"
           },
@@ -78,7 +78,7 @@
             "additionalProperties": false,
             "properties": {
               "exclude": {
-                "description": "Exclude globs under the root directory.",
+                "description": "exclude globs under the root directory.",
                 "items": {
                   "minLength": 1,
                   "type": "string"
@@ -86,7 +86,7 @@
                 "type": "array"
               },
               "include": {
-                "description": "Include globs under the root directory.",
+                "description": "include globs under the root directory.",
                 "items": {
                   "minLength": 1,
                   "type": "string"
@@ -94,7 +94,7 @@
                 "type": "array"
               },
               "path": {
-                "description": "Root directory path.",
+                "description": "root directory path.",
                 "minLength": 1,
                 "type": "string"
               }
@@ -106,10 +106,10 @@
           }
         ]
       },
-      "description": "Named workspaces used by content-hub.",
+      "description": "named workspaces used by content-hub.",
       "minProperties": 1,
       "propertyNames": {
-        "description": "Workspace alias used by content-hub.",
+        "description": "workspace alias used by content-hub.",
         "minLength": 1,
         "type": "string"
       },
@@ -120,6 +120,6 @@
     "origin",
     "workspaces"
   ],
-  "title": "Content Hub Config",
+  "title": "content hub config",
   "type": "object"
 }

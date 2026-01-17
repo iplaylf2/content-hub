@@ -16,5 +16,5 @@ def select_workspaces(
         try:
             selected.append(resolved.workspaces[name])
         except KeyError as exc:
-            raise ConfigError(f"Unknown workspace: {name}") from exc
+            raise ConfigError(f"unknown workspace: {name}") from exc
     return selected

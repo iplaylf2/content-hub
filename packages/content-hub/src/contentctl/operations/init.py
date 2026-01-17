@@ -16,17 +16,17 @@ def run_init(
 
     if config_file.exists():
         raise FileExistsError(
-            f"Configuration file already exists: {config_file}\n"
-            "Remove it first or use a different path."
+            f"config file already exists: {config_file}\n"
+            "remove it first or use a different path."
         )
 
     config_content = _generate_config_template()
 
     if verbose or dry_run:
-        print(f"Creating config file: {config_file}", file=output)
+        print(f"init: creating config file at {config_file}", file=output)
 
     if dry_run:
-        print("\nConfig content:", file=output)
+        print("init: config content:", file=output)
         print(config_content, file=output)
         return
 
@@ -36,7 +36,7 @@ def run_init(
     # Write config file
     config_file.write_text(config_content, encoding="utf-8")
 
-    print(f"✓ Created {config_file}", file=output)
+    print(f"init: created {config_file}", file=output)
 
 
 def _generate_config_template() -> str:

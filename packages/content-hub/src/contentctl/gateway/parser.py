@@ -20,7 +20,7 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
     config_path = _resolve_config_path(args.config, cwd)
 
     if not args.path.strip():
-        parser.error("Path cannot be empty.")
+        parser.error("path is required.")
 
     match args.command:
         case "deploy":
@@ -61,7 +61,7 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
                 verbose=args.verbose,
             )
         case _:
-            parser.error(f"Unknown command: {args.command}")
+            parser.error(f"unknown command: {args.command}")
 
 
 @dataclass(frozen=True)
@@ -100,7 +100,7 @@ CliContext = DeployContext | AdoptContext | InitContext
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="contentctl",
-        description="Manage directory content across multiple locations.",
+        description="sync directory content between an origin and workspaces.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -108,18 +108,18 @@ def _build_parser() -> argparse.ArgumentParser:
         "--config",
         dest="config",
         default=DEFAULT_CONFIG_PATH,
-        help="Path to the config file.",
+        help="path to the content-hub config file.",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Print planned operations without writing changes.",
+        help="show planned operations without writing changes.",
     )
     parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
-        help="Print detailed operation output.",
+        help="show detailed operation output.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
     _add_deploy_parser(subparsers.add_parser)
@@ -141,12 +141,12 @@ def _validate_deploy_workspaces(
     parser: argparse.ArgumentParser,
 ) -> None:
     if all_workspaces and workspaces:
-        parser.error("Use either workspaces or --all-workspaces, not both.")
+        parser.error("use workspace list or --all-workspaces, not both.")
     if not all_workspaces and not workspaces:
-        parser.error("One or more workspaces or --all-workspaces is required.")
+        parser.error("workspace is required unless --all-workspaces is set.")
     for workspace in workspaces:
         if not workspace.strip():
-            parser.error("Workspace cannot be empty.")
+            parser.error("workspace cannot be empty.")
 
 
 def _validate_adopt_workspace(
@@ -154,7 +154,7 @@ def _validate_adopt_workspace(
     parser: argparse.ArgumentParser,
 ) -> None:
     if not workspace.strip():
-        parser.error("Workspace cannot be empty.")
+        parser.error("workspace cannot be empty.")
 
 
 def _add_deploy_parser(
@@ -162,18 +162,18 @@ def _add_deploy_parser(
 ) -> None:
     parser = add_parser(
         "deploy",
-        help="Copy content from origin to workspace.",
+        help="deploy content from origin to workspace.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--all-workspaces",
         action="store_true",
-        help="Target all workspaces defined in the config.",
+        help="target all workspaces in the config.",
     )
     parser.add_argument(
         "--delete",
         action="store_true",
-        help="Delete files in workspace that don't exist in origin.",
+        help="delete workspace files missing in origin.",
     )
     _add_workspace_arg(parser, nargs="*")
     _add_path_arg(parser)
@@ -184,7 +184,7 @@ def _add_adopt_parser(
 ) -> None:
     parser = add_parser(
         "adopt",
-        help="Copy content from workspace to origin.",
+        help="adopt content from workspace to origin.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     _add_workspace_arg(parser)
@@ -196,14 +196,14 @@ def _add_init_parser(
 ) -> None:
     parser = add_parser(
         "init",
-        help=f"Create a new {DEFAULT_CONFIG_FILENAME} config file.",
+        help=f"create a new {DEFAULT_CONFIG_FILENAME} config file.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "path",
         nargs="?",
         default=DEFAULT_INIT_DIR,
-        help=f"Target directory for {DEFAULT_CONFIG_FILENAME}.",
+        help=f"target directory for {DEFAULT_CONFIG_FILENAME}.",
     )
 
 
@@ -214,7 +214,7 @@ def _add_workspace_arg(
     parser.add_argument(
         "workspace",
         nargs=nargs,
-        help="Workspace alias defined in the config.",
+        help="workspace alias from the config.",
     )
 
 
@@ -223,5 +223,5 @@ def _add_path_arg(parser: argparse.ArgumentParser) -> None:
         "-p",
         "--path",
         default=DEFAULT_WORKSPACE_SUBPATH,
-        help="Relative subpath within origin and workspace roots.",
+        help="relative subpath under origin and workspace roots.",
     )

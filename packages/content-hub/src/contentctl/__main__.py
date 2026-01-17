@@ -28,7 +28,7 @@ def main() -> None:
                 output=sys.stdout,
             )
         except (ConfigError, FileExistsError) as exc:
-            print(str(exc), file=sys.stderr)
+            print(f"error: {exc}", file=sys.stderr)
             sys.exit(1)
         return
 
@@ -36,13 +36,13 @@ def main() -> None:
         raw_config = load_config(ctx.config_path)
         resolved = resolve_config(raw_config, ctx.config_path)
     except ConfigError as exc:
-        print(str(exc), file=sys.stderr)
+        print(f"error: {exc}", file=sys.stderr)
         sys.exit(2)
 
     try:
         asyncio.run(_dispatch(ctx, resolved))
     except (ConfigError, SyncError) as exc:
-        print(str(exc), file=sys.stderr)
+        print(f"error: {exc}", file=sys.stderr)
         sys.exit(1)
 
 

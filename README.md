@@ -1,12 +1,12 @@
 # content-hub
 
-content-hub is a CLI tool for distributing and collecting directory content across multiple locations. Define the origin and workspaces in a config file, then trigger sync actions with simple commands to keep content flow controlled and repeatable.
+content-hub is a CLI tool for syncing directory content between an origin and workspaces. Define the origin and workspaces in a config file, then run deploy/adopt commands to keep content flow controlled and repeatable.
 
 Good fit when:
 
-- one source needs to be delivered to multiple directories or teams
-- directory copy flows should be configured and reusable
-- content paths must be managed without reshaping the structure
+- one source needs to reach multiple directories or teams
+- directory sync flows should be configured and reusable
+- content paths must be managed without reshaping structure
 
 ## Quick Start
 
@@ -30,15 +30,16 @@ workspaces:
   docs: ./docs
 ```
 
-Edit it to define your content flow. Run content flows:
+Edit it to define your content flow. Run sync flows:
 
 ```bash
-contentctl deploy docs              # copy origin → workspace
-contentctl deploy docs --delete     # sync origin → workspace and remove unmanaged files
-contentctl adopt docs               # copy workspace → origin
+contentctl deploy docs              # deploy origin → workspace
+contentctl deploy docs --delete     # deploy + remove unmanaged workspace files
+contentctl adopt docs               # adopt workspace → origin
+contentctl deploy docs --dry-run    # show planned operations without changes
 ```
 
-Managed scope means paths under each root that match the include/exclude globs.
+Managed scope means paths under each root that match include/exclude globs.
 
 The `--delete` flag removes files in the workspace that don't exist in origin, but only within the managed scope.
 

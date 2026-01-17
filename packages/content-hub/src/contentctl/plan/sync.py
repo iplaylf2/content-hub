@@ -262,22 +262,22 @@ def _list_directory_entries(path: Path) -> tuple[list[Path], list[Path]]:
 def _resolve_subpath(base: Path, subpath: str) -> Path:
     candidate = Path(subpath)
     if candidate.is_absolute():
-        raise SyncError(f"Path must be relative: {subpath}")
+        raise SyncError(f"path must be relative: {subpath}")
     resolved = (base / candidate).resolve()
     base_resolved = base.resolve()
     if resolved != base_resolved and base_resolved not in resolved.parents:
-        raise SyncError(f"Path escapes base directory: {subpath}")
+        raise SyncError(f"path escapes base directory: {subpath}")
     return resolved
 
 
 def _validate_sync_paths(source_path: Path, destination_path: Path) -> None:
     if _paths_overlap(source_path, destination_path):
         raise SyncError(
-            "Source and destination paths overlap: "
+            "source and destination paths overlap: "
             f"{source_path} <-> {destination_path}"
         )
     if not source_path.exists():
-        raise SyncError(f"Source path not found: {source_path}")
+        raise SyncError(f"source path not found: {source_path}")
 
 
 def _paths_overlap(path_a: Path, path_b: Path) -> bool:

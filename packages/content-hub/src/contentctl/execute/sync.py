@@ -65,7 +65,5 @@ def _print_operation(
     destination_root: Path,
 ) -> None:
     destination = destination_root / operation.relative
-    print(
-        f"{operation.action.value:<7} {destination}",
-        file=output,
-    )
+    action_label = operation.action.value.lower()
+    print(f"{action_label:<7} {destination}", file=output)

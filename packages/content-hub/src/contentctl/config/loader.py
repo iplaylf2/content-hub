@@ -17,25 +17,25 @@ from jsonschema.exceptions import ValidationError
 
 def load_config(config_path: Path) -> dict[str, Any]:
     if not config_path.exists():
-        raise ConfigError(f"Config file not found: {config_path}")
+        raise ConfigError(f"config file not found: {config_path}")
 
     try:
         raw = config_path.read_text(encoding="utf-8")
     except OSError as exc:
-        raise ConfigError(f"Unable to read config file: {config_path}") from exc
+        raise ConfigError(f"cannot read config file: {config_path}") from exc
 
     try:
         config = yaml.safe_load(raw)
     except yaml.YAMLError as exc:
-        raise ConfigError(f"Invalid YAML in config file: {config_path}") from exc
+        raise ConfigError(f"invalid yaml in config file: {config_path}") from exc
 
     match config:
         case None:
-            raise ConfigError(f"Config file is empty: {config_path}")
+            raise ConfigError(f"config file is empty: {config_path}")
         case dict():
             pass
         case _:
-            raise ConfigError("Config root must be a mapping/object.")
+            raise ConfigError("config root must be a mapping.")
 
     config = _render_env_vars(config)
     config_dict = cast(dict[str, Any], config)
@@ -58,7 +58,7 @@ def _validate_schema(config: dict[str, Any]) -> None:
         return
 
     details = "\n".join(f"- {_format_error_path(err)}: {err.message}" for err in errors)
-    raise ConfigError(f"Config schema validation failed:\n{details}")
+    raise ConfigError(f"config schema validation failed:\n{details}")
 
 
 def _render_env_vars(value: Any) -> Any:
@@ -108,5 +108,5 @@ def _load_schema() -> dict[str, Any]:
     try:
         raw = schema_path.read_text(encoding="utf-8")
     except OSError as exc:
-        raise ConfigError(f"Unable to read schema file: {schema_path}") from exc
+        raise ConfigError(f"cannot read schema file: {schema_path}") from exc
     return cast(dict[str, Any], json.loads(raw))
