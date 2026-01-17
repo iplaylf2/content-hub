@@ -6,7 +6,8 @@ from unittest.mock import create_autospec
 import pytest
 
 import contentctl.__main__ as mainmod
-from contentctl.gateway import AdoptContext, DeployContext
+from contentctl.gateway import AdoptContext, DeployContext, InitContext
+from contentctl.gateway.defaults import DEFAULT_CONFIG_FILENAME
 from contentctl.config import ResolvedConfig
 
 from .fixture_types import MakeWorkspace
@@ -259,9 +260,9 @@ def test_main_dispatches_deploy_with_flags(
 
 
 @pytest.mark.parametrize(
-    "workspaces",
+    ("workspaces", "workspace_root_prefix"),
     [
-        ["alpha", "zeta"],
+        (["alpha", "zeta"], "/"),
     ],
 )
 def test_main_dispatches_deploy_selected_workspaces(
@@ -271,9 +272,12 @@ def test_main_dispatches_deploy_selected_workspaces(
     resolved_config: ResolvedConfig,
     patch_main_context: PatchMainContext,
     workspaces: list[str],
+    workspace_root_prefix: str,
 ) -> None:
     ctx = deploy_ctx(all_workspaces=False, workspaces=workspaces)
-    selected = [make_workspace(name, f"/{name}") for name in workspaces]
+    selected = [
+        make_workspace(name, f"{workspace_root_prefix}{name}") for name in workspaces
+    ]
 
     select_workspaces_mock = create_autospec(
         mainmod.select_workspaces, return_value=selected
@@ -295,12 +299,12 @@ def test_main_dispatches_deploy_selected_workspaces(
 
 
 @pytest.mark.parametrize(
-    ("dry_run", "verbose"),
+    ("dry_run", "verbose", "workspace_name", "workspace_path"),
     [
-        (True, True),
-        (True, False),
-        (False, True),
-        (False, False),
+        (True, True, "alpha", "docs"),
+        (True, False, "alpha", "docs"),
+        (False, True, "alpha", "docs"),
+        (False, False, "alpha", "docs"),
     ],
 )
 def test_main_dispatches_adopt_workspace(
@@ -310,8 +314,15 @@ def test_main_dispatches_adopt_workspace(
     patch_main_context: PatchMainContext,
     dry_run: bool,
     verbose: bool,
+    workspace_name: str,
+    workspace_path: str,
 ) -> None:
-    ctx: AdoptContext = adopt_ctx(dry_run=dry_run, verbose=verbose)
+    ctx: AdoptContext = adopt_ctx(
+        workspace=workspace_name,
+        path=workspace_path,
+        dry_run=dry_run,
+        verbose=verbose,
+    )
 
     run_adopt_mock = create_autospec(mainmod.run_adopt)
     monkeypatch.setattr(mainmod, "run_adopt", run_adopt_mock)
@@ -324,3 +335,79 @@ def test_main_dispatches_adopt_workspace(
     assert "workspace" in call_kwargs
     assert call_kwargs["dry_run"] is dry_run
     assert call_kwargs["verbose"] is verbose
+
+
+@pytest.mark.parametrize(
+    ("init_path", "config_filename"),
+    [
+        (Path("/init"), DEFAULT_CONFIG_FILENAME),
+    ],
+)
+def test_main_runs_init_success(
+    monkeypatch: pytest.MonkeyPatch,
+    config_path: Path,
+    init_path: Path,
+    config_filename: str,
+) -> None:
+    ctx = InitContext(
+        command="init",
+        config_path=config_path,
+        config_filename=config_filename,
+        path=init_path,
+        dry_run=False,
+        verbose=False,
+    )
+
+    parse_cli_mock = create_autospec(mainmod.parse_cli, return_value=ctx)
+    run_init_mock = create_autospec(mainmod.run_init)
+
+    monkeypatch.setattr(mainmod, "parse_cli", parse_cli_mock)
+    monkeypatch.setattr(mainmod, "run_init", run_init_mock)
+
+    mainmod.main()
+
+    run_init_mock.assert_called_once()
+    call_kwargs = run_init_mock.call_args.kwargs
+    assert call_kwargs["path"] == ctx.path
+    assert call_kwargs["config_filename"] == ctx.config_filename
+
+
+@pytest.mark.parametrize(
+    ("exc_type", "message", "init_path", "config_filename"),
+    [
+        (FileExistsError, "already exists", Path("/init"), DEFAULT_CONFIG_FILENAME),
+        (mainmod.ConfigError, "bad config", Path("/init"), DEFAULT_CONFIG_FILENAME),
+    ],
+)
+def test_main_exits_on_init_errors(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    config_path: Path,
+    exc_type: type[Exception],
+    message: str,
+    init_path: Path,
+    config_filename: str,
+) -> None:
+    ctx = InitContext(
+        command="init",
+        config_path=config_path,
+        config_filename=config_filename,
+        path=init_path,
+        dry_run=False,
+        verbose=False,
+    )
+
+    def raise_error(*_args: object, **_kwargs: object) -> None:
+        raise exc_type(message)
+
+    parse_cli_mock = create_autospec(mainmod.parse_cli, return_value=ctx)
+    run_init_mock = create_autospec(mainmod.run_init, side_effect=raise_error)
+
+    monkeypatch.setattr(mainmod, "parse_cli", parse_cli_mock)
+    monkeypatch.setattr(mainmod, "run_init", run_init_mock)
+
+    with pytest.raises(SystemExit) as excinfo:
+        mainmod.main()
+
+    assert excinfo.value.code == 1
+    assert message in capsys.readouterr().err

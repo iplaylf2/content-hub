@@ -2,7 +2,12 @@ from pathlib import Path
 
 import pytest
 
-from contentctl.gateway import AdoptContext, DeployContext, parse_cli
+from contentctl.gateway import AdoptContext, DeployContext, InitContext, parse_cli
+from contentctl.gateway.defaults import (
+    DEFAULT_CONFIG_FILENAME,
+    DEFAULT_CONFIG_PATH,
+    DEFAULT_INIT_DIR,
+)
 
 VIRTUAL_WORKSPACE = "virtual-workspace"
 VIRTUAL_SUBDIR = "virtual-subdir"
@@ -169,3 +174,50 @@ def test_parse_cli_sets_flags(
     assert ctx.dry_run is expected_dry_run
     assert ctx.verbose is expected_verbose
     assert ctx.allow_delete is expected_delete
+
+
+@pytest.mark.parametrize(
+    ("argv", "expected_path", "expected_is_absolute"),
+    [
+        (["init"], Path(DEFAULT_INIT_DIR), False),
+        (["init", "virtual-subdir"], Path("virtual-subdir"), False),
+        (["init", "/virtual/abs"], Path("/virtual/abs"), True),
+    ],
+)
+def test_parse_cli_init_resolves_paths(
+    fixture_dir: Path,
+    argv: list[str],
+    expected_path: Path,
+    expected_is_absolute: bool,
+) -> None:
+    ctx = parse_cli(argv, fixture_dir)
+
+    assert isinstance(ctx, InitContext)
+    if expected_is_absolute:
+        assert ctx.path == expected_path
+    else:
+        assert ctx.path == (fixture_dir / expected_path).resolve()
+    assert ctx.config_path == (fixture_dir / DEFAULT_CONFIG_PATH).resolve()
+    assert ctx.config_filename == DEFAULT_CONFIG_FILENAME
+
+
+@pytest.mark.parametrize(
+    ("flags", "expected_dry_run", "expected_verbose"),
+    [
+        (["--dry-run", "--verbose"], True, True),
+        (["--dry-run"], True, False),
+        (["--verbose"], False, True),
+        ([], False, False),
+    ],
+)
+def test_parse_cli_init_sets_flags(
+    fixture_dir: Path,
+    flags: list[str],
+    expected_dry_run: bool,
+    expected_verbose: bool,
+) -> None:
+    ctx = parse_cli([*flags, "init"], fixture_dir)
+
+    assert isinstance(ctx, InitContext)
+    assert ctx.dry_run is expected_dry_run
+    assert ctx.verbose is expected_verbose

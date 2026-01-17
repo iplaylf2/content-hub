@@ -2,6 +2,7 @@ import asyncio
 from collections.abc import AsyncIterator, Callable
 from pathlib import Path
 from typing import Any
+from unittest.mock import create_autospec
 
 import pytest
 
@@ -55,6 +56,7 @@ def test_resolve_sync_paths_rejects_invalid_inputs(
         "source_exclude",
         "destination_include",
         "destination_exclude",
+        "sync_path",
         "expected_files",
     ),
     [
@@ -65,6 +67,7 @@ def test_resolve_sync_paths_rejects_invalid_inputs(
             ("sub/*",),
             ("*.txt", "**/*.txt"),
             (),
+            ".",
             {"guide.txt"},
         ),
     ],
@@ -79,6 +82,7 @@ def test_plan_sync_applies_include_exclude(
     source_exclude: tuple[str, ...],
     destination_include: tuple[str, ...],
     destination_exclude: tuple[str, ...],
+    sync_path: str,
     expected_files: set[str],
 ) -> None:
     source_root = fixture_path(*source)
@@ -87,7 +91,7 @@ def test_plan_sync_applies_include_exclude(
     source_path, destination_path = resolve_sync_paths(
         source_root=source_root,
         destination_root=destination_root,
-        path=".",
+        path=sync_path,
     )
     operations = plan_sync(
         source_path=source_path,
@@ -178,6 +182,7 @@ def test_plan_sync_file_source(
         "dest",
         "destination_include",
         "destination_exclude",
+        "sync_path",
         "expected_actions",
     ),
     [
@@ -186,6 +191,7 @@ def test_plan_sync_file_source(
             ("plan_sync", "destination_single"),
             ("*.txt", "**/*.txt"),
             ("sub/*",),
+            ".",
             {
                 "guide.txt": SyncAction.COPY,
                 "readme.md": SyncAction.SKIP,
@@ -197,6 +203,7 @@ def test_plan_sync_file_source(
             ("plan_sync", "destination_single"),
             (),
             ("*.txt", "**/*.txt"),
+            ".",
             {
                 "guide.txt": SyncAction.SKIP,
                 "sub/chapter.txt": SyncAction.SKIP,
@@ -213,6 +220,7 @@ def test_plan_sync_destination_filtering(
     dest: tuple[str, ...],
     destination_include: tuple[str, ...],
     destination_exclude: tuple[str, ...],
+    sync_path: str,
     expected_actions: dict[str, SyncAction],
 ) -> None:
     source_root = fixture_path(*source)
@@ -220,7 +228,7 @@ def test_plan_sync_destination_filtering(
     source_path, destination_path = resolve_sync_paths(
         source_root=source_root,
         destination_root=destination_root,
-        path=".",
+        path=sync_path,
     )
     operations = plan_sync(
         source_path=source_path,
@@ -239,11 +247,12 @@ def test_plan_sync_destination_filtering(
 
 
 @pytest.mark.parametrize(
-    ("source", "dest", "expected_actions"),
+    ("source", "dest", "sync_path", "expected_actions"),
     [
         (
             ("plan_sync", "source_multi"),
             ("plan_sync", "destination_with_extra"),
+            ".",
             {
                 "old.txt": SyncAction.DELETE,
                 "guide.txt": SyncAction.REPLACE,
@@ -257,6 +266,7 @@ def test_plan_sync_with_delete_removes_unmanaged_files(
     collect_operations: CollectOperations,
     source: tuple[str, ...],
     dest: tuple[str, ...],
+    sync_path: str,
     expected_actions: dict[str, SyncAction],
 ) -> None:
     source_root = fixture_path(*source)
@@ -265,7 +275,7 @@ def test_plan_sync_with_delete_removes_unmanaged_files(
     source_path, destination_path = resolve_sync_paths(
         source_root=source_root,
         destination_root=destination_root,
-        path=".",
+        path=sync_path,
     )
     operations = plan_sync(
         source_path=source_path,
@@ -281,18 +291,75 @@ def test_plan_sync_with_delete_removes_unmanaged_files(
     collected = collect_operations(operations)
     actions = {str(op.relative): op.action for op in collected}
 
-    for file, action in expected_actions.items():
-        assert actions[file] is action
+    assert all(actions.get(file) is action for file, action in expected_actions.items())
 
 
 @pytest.mark.parametrize(
-    ("source", "dest", "source_include", "destination_include", "expected_actions"),
+    ("source", "dest", "sync_path", "missing_file", "expected_file", "expected_action"),
+    [
+        (
+            ("plan_sync", "source_multi"),
+            ("plan_sync", "destination_with_extra"),
+            ".",
+            "old.txt",
+            "guide.txt",
+            SyncAction.REPLACE,
+        ),
+    ],
+)
+def test_plan_sync_without_delete_keeps_extra_files(
+    fixture_path: FixturePath,
+    plan_semaphores: PlanSemaphores,
+    collect_operations: CollectOperations,
+    source: tuple[str, ...],
+    dest: tuple[str, ...],
+    sync_path: str,
+    missing_file: str,
+    expected_file: str,
+    expected_action: SyncAction,
+) -> None:
+    source_root = fixture_path(*source)
+    destination_root = fixture_path(*dest)
+
+    source_path, destination_path = resolve_sync_paths(
+        source_root=source_root,
+        destination_root=destination_root,
+        path=sync_path,
+    )
+    operations = plan_sync(
+        source_path=source_path,
+        destination_path=destination_path,
+        source_include=(),
+        source_exclude=(),
+        destination_include=(),
+        destination_exclude=(),
+        allow_delete=False,
+        **plan_semaphores(),
+    )
+
+    collected = collect_operations(operations)
+    actions = {str(op.relative): op.action for op in collected}
+
+    assert missing_file not in actions
+    assert actions[expected_file] is expected_action
+
+
+@pytest.mark.parametrize(
+    (
+        "source",
+        "dest",
+        "source_include",
+        "destination_include",
+        "sync_path",
+        "expected_actions",
+    ),
     [
         (
             ("plan_sync", "source_multi"),
             ("plan_sync", "destination_with_extra"),
             ("*.txt", "**/*.txt"),
             ("*.txt", "**/*.txt"),
+            ".",
             {
                 "old.txt": SyncAction.DELETE,
                 "guide.txt": SyncAction.REPLACE,
@@ -309,6 +376,7 @@ def test_plan_sync_with_delete_respects_selector_intersection(
     dest: tuple[str, ...],
     source_include: tuple[str, ...],
     destination_include: tuple[str, ...],
+    sync_path: str,
     expected_actions: dict[str, SyncAction | None],
 ) -> None:
     source_root = fixture_path(*source)
@@ -317,7 +385,7 @@ def test_plan_sync_with_delete_respects_selector_intersection(
     source_path, destination_path = resolve_sync_paths(
         source_root=source_root,
         destination_root=destination_root,
-        path=".",
+        path=sync_path,
     )
     operations = plan_sync(
         source_path=source_path,
@@ -333,11 +401,61 @@ def test_plan_sync_with_delete_respects_selector_intersection(
     collected = collect_operations(operations)
     actions = {str(op.relative): op.action for op in collected}
 
-    for file, action in expected_actions.items():
-        if action is None:
-            assert file not in actions
-        else:
-            assert actions[file] is action
+    assert all(
+        (file not in actions) if action is None else (actions.get(file) is action)
+        for file, action in expected_actions.items()
+    )
+
+
+@pytest.mark.parametrize(
+    ("source", "dest", "filename"),
+    [
+        (
+            ("plan_sync", "source_single"),
+            ("plan_sync", "destination_single"),
+            "note.txt",
+        ),
+    ],
+)
+def test_plan_sync_file_source_copies_when_destination_missing(
+    fixture_path: FixturePath,
+    plan_semaphores: PlanSemaphores,
+    collect_operations: CollectOperations,
+    make_sync_op: Callable[[str, SyncAction], SyncOperation],
+    monkeypatch: pytest.MonkeyPatch,
+    source: tuple[str, ...],
+    dest: tuple[str, ...],
+    filename: str,
+) -> None:
+    source_root = fixture_path(*source)
+    destination_root = fixture_path(*dest)
+
+    source_path, destination_path = resolve_sync_paths(
+        source_root=source_root,
+        destination_root=destination_root,
+        path=filename,
+    )
+
+    def exists_stub(self: Path) -> bool:
+        if self == destination_path:
+            return False
+        return True
+
+    exists_mock = create_autospec(Path.exists, side_effect=exists_stub)
+    monkeypatch.setattr(Path, "exists", exists_mock)
+
+    operations = plan_sync(
+        source_path=source_path,
+        destination_path=destination_path,
+        source_include=(),
+        source_exclude=(),
+        destination_include=(),
+        destination_exclude=(),
+        **plan_semaphores(),
+    )
+
+    collected = collect_operations(operations)
+    assert collected == [make_sync_op(filename, SyncAction.COPY)]
 
 
 @pytest.fixture

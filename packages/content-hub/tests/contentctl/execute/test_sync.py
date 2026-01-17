@@ -88,6 +88,50 @@ def test_apply_sync_plan_applies_actions(
 
 
 @pytest.mark.parametrize(
+    "filename",
+    [
+        "ghost.txt",
+        "missing.md",
+    ],
+)
+def test_apply_sync_plan_skips_delete_when_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    source_root: Path,
+    destination_root: Path,
+    make_sync_op: Callable[[str, SyncAction], SyncOperation],
+    make_stream: Callable[..., AsyncIterator[SyncOperation]],
+    drain_stream: Callable[[AsyncIterator[SyncOperation]], None],
+    filename: str,
+) -> None:
+    def exists_stub(self: Path) -> bool:
+        return False
+
+    copy2_mock = create_autospec(shutil.copy2)
+    mkdir_mock = create_autospec(Path.mkdir)
+    unlink_mock = create_autospec(Path.unlink)
+    exists_mock = create_autospec(Path.exists, side_effect=exists_stub)
+
+    monkeypatch.setattr("contentctl.execute.sync.shutil.copy2", copy2_mock)
+    monkeypatch.setattr(Path, "mkdir", mkdir_mock)
+    monkeypatch.setattr(Path, "unlink", unlink_mock)
+    monkeypatch.setattr(Path, "exists", exists_mock)
+
+    stream = make_stream(make_sync_op(filename, SyncAction.DELETE))
+
+    observed = apply_sync_plan(
+        stream,
+        source_root=source_root,
+        destination_root=destination_root,
+        semaphore=asyncio.Semaphore(2),
+    )
+    drain_stream(observed)
+
+    unlink_mock.assert_not_called()
+    copy2_mock.assert_not_called()
+    mkdir_mock.assert_not_called()
+
+
+@pytest.mark.parametrize(
     ("operations", "expected_lines"),
     [
         (
