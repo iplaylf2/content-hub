@@ -1,120 +1,125 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Content Hub Config",
-  "type": "object",
   "additionalProperties": false,
+  "description": "Content-hub config. String values support ${VAR} environment expansion.",
+  "properties": {
+    "defaults": {
+      "additionalProperties": false,
+      "description": "Defaults applied to origin and every workspace.",
+      "properties": {
+        "exclude": {
+          "description": "Exclude globs under the root directory.",
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "include": {
+          "description": "Include globs under the root directory.",
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "origin": {
+      "description": "Primary content source for the hub.",
+      "oneOf": [
+        {
+          "description": "Root directory path.",
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "exclude": {
+              "description": "Exclude globs under the root directory.",
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "include": {
+              "description": "Include globs under the root directory.",
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "path": {
+              "description": "Root directory path.",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "path"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "workspaces": {
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "description": "Root directory path.",
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "exclude": {
+                "description": "Exclude globs under the root directory.",
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "include": {
+                "description": "Include globs under the root directory.",
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "path": {
+                "description": "Root directory path.",
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "description": "Named workspaces used by content-hub.",
+      "minProperties": 1,
+      "propertyNames": {
+        "description": "Workspace alias used by content-hub.",
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "object"
+    }
+  },
   "required": [
     "origin",
     "workspaces"
   ],
-  "properties": {
-    "origin": {
-      "oneOf": [
-        {
-          "type": "string",
-          "minLength": 1,
-          "description": "Filesystem path."
-        },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "path"
-          ],
-          "properties": {
-            "path": {
-              "type": "string",
-              "minLength": 1,
-              "description": "Filesystem path."
-            },
-            "include": {
-              "type": "array",
-              "description": "Glob patterns to include.",
-              "items": {
-                "type": "string",
-                "minLength": 1
-              }
-            },
-            "exclude": {
-              "type": "array",
-              "description": "Glob patterns to exclude.",
-              "items": {
-                "type": "string",
-                "minLength": 1
-              }
-            }
-          }
-        }
-      ]
-    },
-    "defaults": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "include": {
-          "type": "array",
-          "description": "Glob patterns to include.",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "exclude": {
-          "type": "array",
-          "description": "Glob patterns to exclude.",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
-        }
-      }
-    },
-    "workspaces": {
-      "type": "object",
-      "minProperties": 1,
-      "propertyNames": {
-        "type": "string",
-        "minLength": 1
-      },
-      "additionalProperties": {
-        "oneOf": [
-          {
-            "type": "string",
-            "minLength": 1,
-            "description": "Filesystem path."
-          },
-          {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "path"
-            ],
-            "properties": {
-              "path": {
-                "type": "string",
-                "minLength": 1,
-                "description": "Filesystem path."
-              },
-              "include": {
-                "type": "array",
-                "description": "Glob patterns to include.",
-                "items": {
-                  "type": "string",
-                  "minLength": 1
-                }
-              },
-              "exclude": {
-                "type": "array",
-                "description": "Glob patterns to exclude.",
-                "items": {
-                  "type": "string",
-                  "minLength": 1
-                }
-              }
-            }
-          }
-        ]
-      }
-    }
-  }
+  "title": "Content Hub Config",
+  "type": "object"
 }

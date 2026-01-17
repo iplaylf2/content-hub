@@ -38,10 +38,13 @@ contentctl deploy docs --delete     # sync origin → workspace and remove unman
 contentctl adopt docs               # copy workspace → origin
 ```
 
-The `--delete` flag removes files in the workspace that don't exist in origin, but only within the managed scope defined by the intersection of origin and workspace include/exclude patterns.
+Managed scope means paths under each root that match the include/exclude globs.
+
+The `--delete` flag removes files in the workspace that don't exist in origin, but only within the managed scope.
 
 ## Config Notes
 
-- `origin` defines the source directory
+- `origin` sets the primary content directory
 - `workspaces` maps aliases to workspace paths
-- add `include`/`exclude` (glob patterns) when needed; `${VAR}` env substitution is supported
+- `${VAR}` environment variable expansion is supported in config values
+- `include`/`exclude` are glob patterns matched under the root directory
