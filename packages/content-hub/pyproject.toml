@@ -8,8 +8,14 @@ dependencies = ["jsonschema>=4.26.0", "pyyaml>=6.0.3"]
 [project.scripts]
 contentctl = "contentctl.__main__:main"
 
-[tool.poe.tasks]
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.poe.tasks]
 coverage = "pytest --cov=src"
 lint = "ruff check"
 test = "pytest"
