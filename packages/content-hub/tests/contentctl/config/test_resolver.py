@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 import pytest
 from contentctl.config import (
     ConfigError,
@@ -5,9 +7,11 @@ from contentctl.config import (
     select_all_workspaces,
     select_workspaces,
 )
-from tests.fixture_types import FixturePath
 
-from .fixture_types import LoadYamlFixture
+if TYPE_CHECKING:
+    from tests.fixture_types import FixturePath
+
+    from .fixture_types import LoadYamlFixture
 
 
 @pytest.mark.parametrize(

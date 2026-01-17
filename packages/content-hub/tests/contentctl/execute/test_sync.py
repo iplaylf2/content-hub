@@ -1,13 +1,16 @@
 import asyncio
 import shutil
-from collections.abc import AsyncIterator, Callable
 from io import StringIO
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import create_autospec
 
 import pytest
 from contentctl.execute.sync import apply_sync_plan, print_sync_plan
 from contentctl.plan.sync import SyncAction, SyncOperation
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Callable
 
 
 @pytest.mark.parametrize(

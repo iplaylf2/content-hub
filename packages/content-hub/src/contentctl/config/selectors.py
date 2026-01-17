@@ -1,7 +1,13 @@
-from collections.abc import Iterable
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from .loader import ConfigError
-from .resolver import ResolvedConfig, Workspace
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from .resolver import ResolvedConfig, Workspace
 
 
 def select_all_workspaces(resolved: ResolvedConfig) -> list[Workspace]:

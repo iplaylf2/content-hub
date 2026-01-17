@@ -1,10 +1,14 @@
-import asyncio
-from typing import TextIO
+from __future__ import annotations
 
-from contentctl.config import Workspace
+import asyncio
+from typing import TYPE_CHECKING, TextIO
+
 from contentctl.operation_kit import execute_sync_operation, resolve_sync_roots
 from contentctl.plan.sync import plan_sync, resolve_sync_paths
 from contentctl.utils.concurrent import default_concurrency
+
+if TYPE_CHECKING:
+    from contentctl.config import Workspace
 
 
 async def run_adopt(

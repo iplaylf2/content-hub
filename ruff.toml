@@ -1,4 +1,16 @@
 [lint]
 
 ignore = ["F821"]
-extend-select = ["ARG", "B", "C4", "I", "N", "PT", "RUF", "SIM", "UP"]
+extend-select = [
+    "ARG",
+    "B",
+    "C4",
+    "FA",
+    "I",
+    "N",
+    "PT",
+    "RUF",
+    "SIM",
+    "TC",
+    "UP",
+]

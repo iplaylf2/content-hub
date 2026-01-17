@@ -1,11 +1,13 @@
 import asyncio
 import shutil
-from collections.abc import AsyncIterable, AsyncIterator
-from pathlib import Path
-from typing import TextIO
+from typing import TYPE_CHECKING, TextIO
 
 from contentctl.plan.sync import SyncAction, SyncOperation
 from contentctl.utils.concurrent import map_concurrent
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterable, AsyncIterator
+    from pathlib import Path
 
 
 async def print_sync_plan(

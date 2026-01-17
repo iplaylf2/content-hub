@@ -1,8 +1,11 @@
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from contentctl.config import ResolvedConfig, select_workspaces
-from tests.contentctl.fixture_types import MakeWorkspace
+
+if TYPE_CHECKING:
+    from tests.contentctl.fixture_types import MakeWorkspace
 
 
 @pytest.mark.parametrize(

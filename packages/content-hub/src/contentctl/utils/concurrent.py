@@ -1,9 +1,11 @@
 import asyncio
 import contextlib
 import os
-from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Callable
 
 _Item = TypeVar("_Item")
 _Result = TypeVar("_Result")

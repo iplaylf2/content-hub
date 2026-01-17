@@ -1,11 +1,15 @@
-import asyncio
-from collections.abc import AsyncIterable
-from pathlib import Path
-from typing import TextIO
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, TextIO
 
 from contentctl.execute.sync import apply_sync_plan, print_sync_plan
 from contentctl.plan.sync import SyncAction, SyncOperation
 from contentctl.utils.streams import count_stream
+
+if TYPE_CHECKING:
+    import asyncio
+    from collections.abc import AsyncIterable
+    from pathlib import Path
 
 
 def resolve_sync_roots(source_path: Path, destination_path: Path) -> tuple[Path, Path]:

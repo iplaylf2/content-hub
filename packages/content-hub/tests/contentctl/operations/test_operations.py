@@ -1,8 +1,7 @@
 import asyncio
-from collections.abc import AsyncIterator
 from io import StringIO
 from pathlib import Path
-from typing import TextIO, cast
+from typing import TYPE_CHECKING, TextIO, cast
 from unittest.mock import create_autospec
 
 import pytest
@@ -11,8 +10,12 @@ from contentctl.operations import deploy as deploy_mod
 from contentctl.operations.adopt import run_adopt
 from contentctl.operations.deploy import run_deploy
 from contentctl.plan.sync import SyncAction, SyncOperation
-from tests.contentctl.fixture_types import MakeWorkspace
-from tests.fixture_types import FixturePath
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
+    from tests.contentctl.fixture_types import MakeWorkspace
+    from tests.fixture_types import FixturePath
 
 
 @pytest.mark.parametrize(

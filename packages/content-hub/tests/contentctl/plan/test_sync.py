@@ -1,13 +1,15 @@
 import asyncio
 from collections.abc import AsyncIterator, Callable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import create_autospec
 
 import pytest
 from contentctl.plan import SyncAction, SyncError, plan_sync, resolve_sync_paths
 from contentctl.plan.sync import SyncOperation
-from tests.fixture_types import FixturePath
+
+if TYPE_CHECKING:
+    from tests.fixture_types import FixturePath
 
 type PlanSemaphores = Callable[[], dict[str, Any]]
 type CollectOperations = Callable[[AsyncIterator[SyncOperation]], list[SyncOperation]]

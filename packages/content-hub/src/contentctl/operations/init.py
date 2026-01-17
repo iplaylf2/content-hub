@@ -1,7 +1,11 @@
-from pathlib import Path
-from typing import TextIO
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, TextIO
 
 import yaml
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def run_init(

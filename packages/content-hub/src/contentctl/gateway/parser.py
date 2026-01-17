@@ -1,10 +1,9 @@
 """CLI parsing and context resolution for contentctl."""
 
 import argparse
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from .defaults import (
     DEFAULT_CONFIG_FILENAME,
@@ -12,6 +11,9 @@ from .defaults import (
     DEFAULT_INIT_DIR,
     DEFAULT_WORKSPACE_SUBPATH,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def parse_cli(argv: list[str], cwd: Path) -> CliContext:

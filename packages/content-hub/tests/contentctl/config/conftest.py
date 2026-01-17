@@ -1,12 +1,14 @@
 """Fixtures for config module tests."""
 
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 import yaml
 
-from .fixture_types import LoadYamlFixture
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from .fixture_types import LoadYamlFixture
 
 
 @pytest.fixture

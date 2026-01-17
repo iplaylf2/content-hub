@@ -1,8 +1,10 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from contentctl.config import ConfigError, load_config
-from tests.fixture_types import FixturePath
+
+if TYPE_CHECKING:
+    from tests.fixture_types import FixturePath
 
 
 @pytest.mark.parametrize(

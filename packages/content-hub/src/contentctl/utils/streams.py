@@ -1,5 +1,7 @@
-from collections.abc import AsyncIterable, Callable
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterable, Callable
 
 _StreamItem = TypeVar("_StreamItem")
 

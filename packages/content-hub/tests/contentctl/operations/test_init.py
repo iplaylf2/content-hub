@@ -1,11 +1,14 @@
 from io import StringIO
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import create_autospec
 
 import pytest
 from contentctl.gateway.defaults import DEFAULT_CONFIG_FILENAME
 from contentctl.operations.init import run_init
-from tests.fixture_types import FixturePath
+
+if TYPE_CHECKING:
+    from tests.fixture_types import FixturePath
 
 
 @pytest.mark.parametrize(

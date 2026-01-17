@@ -1,14 +1,19 @@
+from __future__ import annotations
+
 import asyncio
 import glob
 import os
 import re
-from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from contentctl.utils.concurrent import Emit, Spawn, stream_concurrently
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Iterator
 
 
 async def plan_sync(

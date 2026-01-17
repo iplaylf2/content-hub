@@ -1,18 +1,23 @@
 """Config loading and validation for contentctl."""
 
+from __future__ import annotations
+
 import json
 import os
 from collections import UserDict
-from collections.abc import Iterable
 from functools import lru_cache
 from importlib.resources import files
-from pathlib import Path
 from string import Template
-from typing import Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import yaml
 from jsonschema import Draft202012Validator
-from jsonschema.exceptions import ValidationError
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
+
+    from jsonschema.exceptions import ValidationError
 
 
 def load_config(config_path: Path) -> dict[str, Any]:
@@ -38,7 +43,7 @@ def load_config(config_path: Path) -> dict[str, Any]:
             raise ConfigError("config root must be a mapping.")
 
     config = _render_env_vars(config)
-    config_dict = cast(dict[str, Any], config)
+    config_dict = cast("dict[str, Any]", config)
     _validate_schema(config_dict)
     return config_dict
 
@@ -51,7 +56,7 @@ def _validate_schema(config: dict[str, Any]) -> None:
     schema = _load_schema()
     validator = Draft202012Validator(schema)
     errors = sorted(
-        cast(_Validator, validator).iter_errors(config),
+        cast("_Validator", validator).iter_errors(config),
         key=lambda err: tuple(err.path),
     )
     if not errors:
@@ -66,11 +71,11 @@ def _render_env_vars(value: Any) -> Any:
         case str():
             return Template(value).substitute(_EnvVars(os.environ))
         case list():
-            value_list = cast(list[Any], value)
+            value_list = cast("list[Any]", value)
             return [_render_env_vars(item) for item in value_list]
         case dict():
             rendered: dict[str, Any] = {}
-            value_dict = cast(dict[str, Any], value)
+            value_dict = cast("dict[str, Any]", value)
             for key, item in value_dict.items():
                 rendered[key] = _render_env_vars(item)
             return rendered
@@ -109,4 +114,4 @@ def _load_schema() -> dict[str, Any]:
         raw = schema_path.read_text(encoding="utf-8")
     except OSError as exc:
         raise ConfigError(f"cannot read schema file: {schema_path}") from exc
-    return cast(dict[str, Any], json.loads(raw))
+    return cast("dict[str, Any]", json.loads(raw))

@@ -1,12 +1,14 @@
 """Fixtures specific to contentctl module tests."""
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from contentctl.config import Workspace
 from contentctl.plan.sync import SyncAction, SyncOperation
 
-from .fixture_types import MakeSyncOp, MakeWorkspace
+if TYPE_CHECKING:
+    from .fixture_types import MakeSyncOp, MakeWorkspace
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 from unittest.mock import create_autospec
 
 import contentctl.__main__ as mainmod
@@ -9,7 +9,8 @@ from contentctl.config import ResolvedConfig
 from contentctl.gateway import AdoptContext, DeployContext, InitContext
 from contentctl.gateway.defaults import DEFAULT_CONFIG_FILENAME
 
-from .fixture_types import MakeWorkspace
+if TYPE_CHECKING:
+    from .fixture_types import MakeWorkspace
 
 type DeployCtxFactory = Callable[..., DeployContext]
 type AdoptCtxFactory = Callable[..., AdoptContext]

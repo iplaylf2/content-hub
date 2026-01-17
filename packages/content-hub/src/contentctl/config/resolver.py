@@ -1,7 +1,9 @@
-from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
 
 
 def resolve_config(config: dict[str, Any], config_path: Path) -> ResolvedConfig:
@@ -52,17 +54,17 @@ def _resolve_workspace(
     default_include: list[str],
     default_exclude: list[str],
 ) -> Workspace:
-    raw_value = cast(dict[str, Any] | str, raw)
+    raw_value = cast("dict[str, Any] | str", raw)
     match raw_value:
         case str():
             resolved_path = _resolve_path(raw_value, base_dir)
             include = tuple(default_include)
             exclude = tuple(default_exclude)
         case dict():
-            raw_dict = cast(Mapping[str, Any], raw_value)
-            path_value = cast(str, raw_dict["path"])
-            include_raw = cast(list[str], raw_dict.get("include", []))
-            exclude_raw = cast(list[str], raw_dict.get("exclude", []))
+            raw_dict = cast("Mapping[str, Any]", raw_value)
+            path_value = cast("str", raw_dict["path"])
+            include_raw = cast("list[str]", raw_dict.get("include", []))
+            exclude_raw = cast("list[str]", raw_dict.get("exclude", []))
             resolved_path = _resolve_path(path_value, base_dir)
             include = tuple(_normalize_patterns(default_include, include_raw))
             exclude = tuple(_normalize_patterns(default_exclude, exclude_raw))
