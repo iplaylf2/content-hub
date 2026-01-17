@@ -6,7 +6,7 @@ from unittest.mock import create_autospec
 import pytest
 
 import contentctl.__main__ as mainmod
-from contentctl.cli_parser import AdoptContext, DeployContext
+from contentctl.gateway import AdoptContext, DeployContext
 from contentctl.config import ResolvedConfig
 
 from .fixture_types import MakeWorkspace

@@ -4,13 +4,20 @@ from unittest.mock import create_autospec
 
 import pytest
 
+from contentctl.gateway.defaults import DEFAULT_CONFIG_FILENAME
 from contentctl.operations.init import run_init
 from tests.fixture_types import FixturePath
 
 
-@pytest.mark.parametrize("init_dir_name", ["virtual-init"])
+@pytest.mark.parametrize(
+    ("init_dir_name", "config_filename"),
+    [("virtual-init", DEFAULT_CONFIG_FILENAME)],
+)
 def test_init_dry_run_skips_write(
-    fixture_path: FixturePath, monkeypatch: pytest.MonkeyPatch, init_dir_name: str
+    fixture_path: FixturePath,
+    monkeypatch: pytest.MonkeyPatch,
+    init_dir_name: str,
+    config_filename: str,
 ) -> None:
     observed_writes: list[str] = []
     init_dir = fixture_path(init_dir_name)
@@ -24,6 +31,7 @@ def test_init_dry_run_skips_write(
     output = StringIO()
     run_init(
         path=init_dir,
+        config_filename=config_filename,
         dry_run=True,
         verbose=False,
         output=output,
@@ -33,9 +41,15 @@ def test_init_dry_run_skips_write(
     assert observed_writes == []
 
 
-@pytest.mark.parametrize("init_dir_name", ["virtual-init"])
+@pytest.mark.parametrize(
+    ("init_dir_name", "config_filename"),
+    [("virtual-init", DEFAULT_CONFIG_FILENAME)],
+)
 def test_init_fails_when_file_exists(
-    fixture_path: FixturePath, monkeypatch: pytest.MonkeyPatch, init_dir_name: str
+    fixture_path: FixturePath,
+    monkeypatch: pytest.MonkeyPatch,
+    init_dir_name: str,
+    config_filename: str,
 ) -> None:
     init_dir = fixture_path(init_dir_name)
     exists_mock = create_autospec(Path.exists, return_value=True)
@@ -45,15 +59,22 @@ def test_init_fails_when_file_exists(
     with pytest.raises(FileExistsError):
         run_init(
             path=init_dir,
+            config_filename=config_filename,
             dry_run=False,
             verbose=False,
             output=output,
         )
 
 
-@pytest.mark.parametrize("init_dir_name", ["virtual-init"])
+@pytest.mark.parametrize(
+    ("init_dir_name", "config_filename"),
+    [("virtual-init", DEFAULT_CONFIG_FILENAME)],
+)
 def test_init_writes_config_and_creates_directories(
-    fixture_path: FixturePath, monkeypatch: pytest.MonkeyPatch, init_dir_name: str
+    fixture_path: FixturePath,
+    monkeypatch: pytest.MonkeyPatch,
+    init_dir_name: str,
+    config_filename: str,
 ) -> None:
     observed_writes: list[str] = []
     init_dir = fixture_path(init_dir_name)
@@ -70,6 +91,7 @@ def test_init_writes_config_and_creates_directories(
     output = StringIO()
     run_init(
         path=init_dir,
+        config_filename=config_filename,
         dry_run=False,
         verbose=False,
         output=output,

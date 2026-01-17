@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 import re
 
-from contentctl.utils import stream_concurrently, Emit, Spawn
+from contentctl.utils.concurrent import Emit, Spawn, stream_concurrently
 
 
 async def plan_sync(

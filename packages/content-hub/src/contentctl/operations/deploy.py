@@ -4,7 +4,7 @@ from typing import Iterable, TextIO
 from contentctl.config import Workspace
 from contentctl.operation_kit import execute_sync_operation, resolve_sync_roots
 from contentctl.plan.sync import plan_sync, resolve_sync_paths
-from contentctl.utils import default_concurrency
+from contentctl.utils.concurrent import default_concurrency
 
 
 async def run_deploy(

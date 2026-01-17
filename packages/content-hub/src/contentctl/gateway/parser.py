@@ -5,6 +5,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Literal
 
+from .defaults import (
+    DEFAULT_CONFIG_FILENAME,
+    DEFAULT_CONFIG_PATH,
+    DEFAULT_INIT_DIR,
+    DEFAULT_WORKSPACE_SUBPATH,
+)
 
 def parse_cli(argv: list[str], cwd: Path) -> CliContext:
     parser = _build_parser()
@@ -48,6 +54,7 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
             return InitContext(
                 command="init",
                 config_path=config_path,
+                config_filename=DEFAULT_CONFIG_FILENAME,
                 path=init_path.resolve(),
                 dry_run=args.dry_run,
                 verbose=args.verbose,
@@ -83,6 +90,7 @@ class AdoptContext(BaseContext):
 class InitContext(BaseContext):
     command: Literal["init"]
     path: Path
+    config_filename: str
 
 
 CliContext = DeployContext | AdoptContext | InitContext
@@ -97,8 +105,8 @@ def _build_parser() -> argparse.ArgumentParser:
         "-c",
         "--config",
         dest="config",
-        default="content-hub.yaml",
-        help="Path to the config file. Defaults to content-hub.yaml in the current directory.",
+        default=DEFAULT_CONFIG_PATH,
+        help="Path to the config file.",
     )
     parser.add_argument(
         "--dry-run",
@@ -194,8 +202,8 @@ def _add_path_arg(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "-p",
         "--path",
-        default=".",
-        help="Relative path applied to both origin and workspace (default: '.').",
+        default=DEFAULT_WORKSPACE_SUBPATH,
+        help="Relative subpath inside both origin and workspace roots.",
     )
 
 
@@ -204,11 +212,11 @@ def _add_init_parser(
 ) -> None:
     parser = add_parser(
         "init",
-        help="Create a new content-hub.yaml config file.",
+        help=f"Create a new {DEFAULT_CONFIG_FILENAME} config file.",
     )
     parser.add_argument(
         "path",
         nargs="?",
-        default=".",
-        help="Directory where content-hub.yaml will be created (default: '.').",
+        default=DEFAULT_INIT_DIR,
+        help=f"Target directory for {DEFAULT_CONFIG_FILENAME}.",
     )

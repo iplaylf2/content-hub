@@ -2,7 +2,7 @@ import sys
 import asyncio
 from pathlib import Path
 
-from .cli_parser import AdoptContext, DeployContext, InitContext, parse_cli
+from .gateway import AdoptContext, DeployContext, InitContext, parse_cli
 from .config import (
     ConfigError,
     ResolvedConfig,
@@ -22,6 +22,7 @@ def main() -> None:
         try:
             run_init(
                 path=ctx.path,
+                config_filename=ctx.config_filename,
                 dry_run=ctx.dry_run,
                 verbose=ctx.verbose,
                 output=sys.stdout,

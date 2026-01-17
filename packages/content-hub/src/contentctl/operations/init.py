@@ -3,15 +3,15 @@ from typing import TextIO
 
 import yaml
 
-
 def run_init(
     path: Path,
+    config_filename: str,
     dry_run: bool,
     verbose: bool,
     output: TextIO,
 ) -> None:
     target_dir = path
-    config_file = target_dir / "content-hub.yaml"
+    config_file = target_dir / config_filename
 
     if config_file.exists():
         raise FileExistsError(

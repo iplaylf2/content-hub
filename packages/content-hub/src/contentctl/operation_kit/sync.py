@@ -5,7 +5,7 @@ from typing import TextIO
 
 from contentctl.execute.sync import apply_sync_plan, print_sync_plan
 from contentctl.plan.sync import SyncAction, SyncOperation
-from contentctl.utils import count_stream
+from contentctl.utils.streams import count_stream
 
 
 def resolve_sync_roots(source_path: Path, destination_path: Path) -> tuple[Path, Path]:

@@ -2,10 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from contentctl.cli_parser import AdoptContext, DeployContext, parse_cli
-
-
-DEFAULT_CONFIG_NAME = "content-hub.yaml"
+from contentctl.gateway import AdoptContext, DeployContext, parse_cli
+from contentctl.gateway.defaults import DEFAULT_CONFIG_PATH
 VIRTUAL_WORKSPACE = "virtual-workspace"
 VIRTUAL_SUBDIR = "virtual-subdir"
 VIRTUAL_CONFIG_NAME = "virtual-config.yaml"
@@ -31,7 +29,7 @@ VIRTUAL_CONFIG_NAME = "virtual-config.yaml"
             False,
             [VIRTUAL_WORKSPACE],
             None,
-            DEFAULT_CONFIG_NAME,
+            DEFAULT_CONFIG_PATH,
         ),
         (
             ["deploy", "--all-workspaces"],
@@ -41,7 +39,7 @@ VIRTUAL_CONFIG_NAME = "virtual-config.yaml"
             True,
             [],
             None,
-            DEFAULT_CONFIG_NAME,
+            DEFAULT_CONFIG_PATH,
         ),
         (
             ["adopt", VIRTUAL_WORKSPACE],
@@ -51,7 +49,7 @@ VIRTUAL_CONFIG_NAME = "virtual-config.yaml"
             None,
             None,
             VIRTUAL_WORKSPACE,
-            DEFAULT_CONFIG_NAME,
+            DEFAULT_CONFIG_PATH,
         ),
     ],
 )
