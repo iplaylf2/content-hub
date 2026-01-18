@@ -34,6 +34,8 @@ contentctl = ["schema/**"]
 [tool.setuptools.dynamic]
 classifiers = { file = ["CLASSIFIERS.txt"] }
 
+[tool.setuptools_scm]
+
 [tool.poe.tasks]
 coverage = "pytest --cov=src"
 lint = "ruff check"
