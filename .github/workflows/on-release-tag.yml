@@ -25,9 +25,6 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
 
-      - name: Install build tooling
-        run: uv pip install --upgrade build
-
       - name: Build
         run: uv build
         working-directory: packages/content-hub
