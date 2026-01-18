@@ -2,9 +2,13 @@
 name = "root"
 version = "0.0.0"
 requires-python = ">=3.14"
+dependencies = ["content-hub"]
+
+[tool.uv.sources]
+"content-hub" = { workspace = true }
 
 [tool.uv.workspace]
-members = ["packages/content-hub"]
+members = ["packages/*"]
 
 [tool.poe.tasks.ws]
 cmd = "uv run --directory packages/${workspace} poe ${task}"
