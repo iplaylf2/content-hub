@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          fetch-tags: true
+          fetch-depth: 0
 
       - name: Prepare package metadata files
         run: |
