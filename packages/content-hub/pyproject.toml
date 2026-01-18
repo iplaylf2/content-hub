@@ -35,6 +35,7 @@ contentctl = ["schema/**"]
 classifiers = { file = ["CLASSIFIERS.txt"] }
 
 [tool.setuptools_scm]
+fallback_version = "0.0.0"
 
 [tool.poe.tasks]
 coverage = "pytest --cov=src"
