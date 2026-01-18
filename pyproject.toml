@@ -1,13 +1,21 @@
 [project]
+dependencies = ["content-hub"]
 name = "root"
-version = "0.0.0"
 requires-python = ">=3.14"
+version = "0.0.0"
+
+[tool.uv.sources]
+"content-hub" = { workspace = true }
 
 [tool.uv.workspace]
-members = ["packages/content-hub"]
+members = ["packages/*"]
+
+[tool.poe]
+executor = "uv"
 
 [tool.poe.tasks.ws]
-cmd = "uv run --directory packages/${workspace} poe ${task}"
+cmd = "poe ${task}"
+cwd = "packages/${workspace}"
 
 [[tool.poe.tasks.ws.args]]
 name = "workspace"

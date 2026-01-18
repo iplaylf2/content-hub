@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import importlib.resources as resources
 import json
 import os
 from collections import UserDict
 from functools import lru_cache
-from importlib.resources import files
 from string import Template
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
@@ -109,9 +109,8 @@ class _EnvVars(UserDict[str, str]):
 
 @lru_cache
 def _load_schema() -> dict[str, Any]:
-    schema_path = files("contentctl.schema").joinpath("content-hub.schema.json")
-    try:
-        raw = schema_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        raise ConfigError(f"cannot read schema file: {schema_path}") from exc
+    raw = resources.read_text(
+        "contentctl.schema",
+        "content-hub.schema.json",
+    )
     return cast("dict[str, Any]", json.loads(raw))

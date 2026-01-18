@@ -7,8 +7,91 @@ on:
       - master
 
 jobs:
-  todo:
+  discover-packages:
+    name: Discover Packages
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.collect.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Collect package metadata
+        id: collect
+        run: |
+          set -euo pipefail
+
+          mapfile -t packages < <(find packages -mindepth 1 -maxdepth 1 -type d -print | sort)
+          if [ "${#packages[@]}" -eq 0 ]; then
+            echo 'matrix=[]' >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          matrix_json=$(
+            for package_dir in "${packages[@]}"; do
+              name=$(basename "${package_dir}")
+              jq -nc --arg name "${name}" '{name: $name}'
+            done | jq -sc '.'
+          )
+
+          echo "Discovered matrix: ${matrix_json}"
+          echo "matrix=${matrix_json}" >>"$GITHUB_OUTPUT"
+
+  package-checks:
+    name: Checks (${{ matrix.package.name }})
+    needs: discover-packages
+    if: needs.discover-packages.result == 'success' && needs.discover-packages.outputs.matrix != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.discover-packages.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Sync dependencies
+        run: uv sync --group dev --all-packages --locked
+
+      - name: Lint (${{ matrix.package.name }})
+        run: uv run poe ws ${{ matrix.package.name }} lint
+
+      - name: Typecheck (${{ matrix.package.name }})
+        run: uv run poe ws ${{ matrix.package.name }} typecheck
+
+      - name: Test (${{ matrix.package.name }})
+        run: |
+          set -euo pipefail
+          {
+            echo "### Coverage report (${{ matrix.package.name }})"
+            echo
+            uv run poe ws ${{ matrix.package.name }} coverage -- \
+              -q \
+              --cov-report=term:skip-covered \
+              --color=no \
+              --no-header
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+  checks-summary:
+    name: Checks Summary
+    needs: package-checks
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
-      - name: TODO - Pending implementation
-        run: "echo 'TODO: Add workflow steps here'"
+      - name: Report status
+        run: |
+          result='${{ needs.package-checks.result }}'
+          level="notice"
+
+          if [ "${result}" != "success" ] && [ "${result}" != "skipped" ]; then
+            level="error"
+          fi
+
+          echo "::${level}::Checks outcome: ${result}"
+          if [ "${result}" != "success" ] && [ "${result}" != "skipped" ]; then
+            exit 1
+          fi

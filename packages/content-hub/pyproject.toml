@@ -1,19 +1,41 @@
 [project]
-name = "content-hub"
-version = "0.1.0"
-description = "A CLI for managing the lifecycle of directory content across multiple locations."
-requires-python = ">=3.14"
+authors = [{ name = "iplaylf2" }]
 dependencies = ["jsonschema>=4.26.0", "pyyaml>=6.0.3"]
+description = "A CLI for managing the lifecycle of directory content across multiple locations."
+dynamic = ["version", "classifiers"]
+keywords = ["cli", "directory", "workspace", "lifecycle", "sync", "contentctl"]
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+name = "content-hub"
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.14"
+
+[project.urls]
+Homepage = "https://github.com/iplaylf2/content-hub"
+Issues = "https://github.com/iplaylf2/content-hub/issues"
+Source = "https://github.com/iplaylf2/content-hub"
 
 [project.scripts]
 contentctl = "contentctl.__main__:main"
 
 [build-system]
-requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+requires = ["setuptools>=80.0", "setuptools_scm[toml]>=8.0"]
 
 [tool.setuptools]
 package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+contentctl = ["schema/**"]
+
+[tool.setuptools.dynamic]
+classifiers = { file = ["CLASSIFIERS.txt"] }
+
+[tool.setuptools_scm]
+fallback_version = "0.0.0"
 
 [tool.poe.tasks]
 coverage = "pytest --cov=src"
