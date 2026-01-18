@@ -1,12 +1,6 @@
 # content-hub
 
-content-hub is a CLI tool for syncing directory content between an origin and workspaces. Define the origin and workspaces in a config file, then run deploy/adopt commands to keep content flow controlled and repeatable.
-
-Good fit when:
-
-- one source needs to reach multiple directories or teams
-- directory sync flows should be configured and reusable
-- content paths must be managed without reshaping structure
+content-hub is a CLI tool that syncs directory content between one origin and one or more workspaces, driven by a config file.
 
 ## Quick Start
 
@@ -16,7 +10,7 @@ Requires Python 3.14+.
 pip install content-hub
 ```
 
-Initialize a new project:
+Initialize a config:
 
 ```bash
 contentctl init
@@ -30,22 +24,22 @@ workspaces:
   docs: ./docs
 ```
 
-Edit it to define your content flow. Run sync flows:
+Run sync flows:
 
 ```bash
 contentctl deploy docs              # deploy origin → workspace
-contentctl deploy docs --delete     # deploy + remove unmanaged workspace files
+contentctl deploy docs --delete     # deploy + remove workspace files missing in origin
 contentctl adopt docs               # adopt workspace → origin
 contentctl deploy docs --dry-run    # show planned operations without changes
 ```
 
-Managed scope means paths under each root that match include/exclude globs.
+Behavior:
 
-The `--delete` flag removes files in the workspace that don't exist in origin, but only within the managed scope.
+- `--path` is relative to the origin/workspace roots (default `.`).
+- `--delete` removes workspace files missing in origin, filtered by `include`/`exclude` globs.
 
 ## Config Notes
 
-- `origin` sets the primary content directory
-- `workspaces` maps aliases to workspace paths
-- `${VAR}` environment variable expansion is supported in config values
-- `include`/`exclude` are glob patterns matched under the root directory
+- `origin` sets the primary content directory.
+- `workspaces` maps aliases to workspace paths.
+- `${VAR}` environment variable expansion is supported in config values.
