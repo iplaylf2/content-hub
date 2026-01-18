@@ -7,7 +7,9 @@ delenv
 docstrings
 jsonschema
 kwargs
+mapfile
 monkeypatch
+pipefail
 poethepoet
 pycache
 pypa
