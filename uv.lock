@@ -40,7 +40,6 @@ wheels = [
 
 [[package]]
 name = "content-hub"
-version = "0.1.0"
 source = { editable = "packages/content-hub" }
 dependencies = [
     { name = "jsonschema" },

@@ -6,8 +6,33 @@ on:
       - "v[0-9]*.[0-9]*.[0-9]*"
 
 jobs:
-  todo:
+  build-and-publish:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
-      - name: TODO - Pending implementation
-        run: "echo 'TODO: Add workflow steps here'"
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-tags: true
+
+      - name: Prepare package metadata files
+        run: |
+          cp README.md packages/content-hub/README.md
+          cp LICENSE packages/content-hub/LICENSE
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install build tooling
+        run: uv pip install --upgrade build
+
+      - name: Build
+        run: uv build
+        working-directory: packages/content-hub
+
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@v1.13.0
+        with:
+          packages-dir: packages/content-hub/dist
