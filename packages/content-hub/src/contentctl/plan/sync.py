@@ -22,8 +22,9 @@ def plan_sync(
     *,
     policy: SyncPolicy,
 ) -> SyncPlan:
-    source_path = _resolve_subpath(scope.source_root, scope.path)
-    destination_path = _resolve_subpath(scope.destination_root, scope.path)
+    _validate_subpath(scope.path)
+    source_path = scope.source_root / scope.path
+    destination_path = scope.destination_root / scope.path
     _validate_sync_paths(source_path, destination_path)
 
     source_is_file = source_path.is_file()
@@ -126,6 +127,12 @@ class SyncAction(str, Enum):
 class _DirectoryEntries:
     files: set[Path]
     subdirs: set[Path]
+
+
+def _validate_subpath(subpath: str) -> None:
+    candidate = Path(subpath)
+    if ".." in candidate.parts:
+        raise SyncError(f"path escapes base directory: {subpath}")
 
 
 def _plan_sync_single_file(
@@ -321,17 +328,6 @@ def _list_directory_entries(path: Path) -> tuple[list[Path], list[Path]]:
             else:
                 files.append(Path(entry.path))
     return subdirs, files
-
-
-def _resolve_subpath(base: Path, subpath: str) -> Path:
-    candidate = Path(subpath)
-    if candidate.is_absolute():
-        raise SyncError(f"path must be relative: {subpath}")
-    resolved = (base / candidate).resolve()
-    base_resolved = base.resolve()
-    if resolved != base_resolved and base_resolved not in resolved.parents:
-        raise SyncError(f"path escapes base directory: {subpath}")
-    return resolved
 
 
 def _validate_sync_paths(source_path: Path, destination_path: Path) -> None:

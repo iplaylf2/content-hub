@@ -24,6 +24,8 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
 
     if not args.path.strip():
         parser.error("path is required.")
+    if Path(args.path).is_absolute():
+        parser.error("path must be relative.")
 
     match args.command:
         case "deploy":
