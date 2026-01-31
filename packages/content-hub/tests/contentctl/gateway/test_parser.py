@@ -179,21 +179,27 @@ def test_parse_cli_sets_flags(
 
 
 @pytest.mark.parametrize(
-    ("argv", "expected_path"),
+    ("argv", "expected_path", "expected_is_absolute"),
     [
-        (["init"], Path(DEFAULT_INIT_DIR)),
-        (["init", "virtual-subdir"], Path("virtual-subdir")),
+        (["init"], Path(DEFAULT_INIT_DIR), False),
+        (["init", "virtual-subdir"], Path("virtual-subdir"), False),
+        (["init", "/virtual/abs"], Path("/virtual/abs"), True),
     ],
 )
 def test_parse_cli_init_resolves_paths(
     fixture_dir: Path,
     argv: list[str],
     expected_path: Path,
+    *,
+    expected_is_absolute: bool,
 ) -> None:
     ctx = parse_cli(argv, fixture_dir)
 
     assert isinstance(ctx, InitContext)
-    assert ctx.path == (fixture_dir / expected_path).resolve()
+    if expected_is_absolute:
+        assert ctx.path == expected_path
+    else:
+        assert ctx.path == (fixture_dir / expected_path).resolve()
     assert ctx.config_path == (fixture_dir / DEFAULT_CONFIG_PATH).resolve()
     assert ctx.config_filename == DEFAULT_CONFIG_FILENAME
 
