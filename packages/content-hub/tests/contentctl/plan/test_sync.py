@@ -86,6 +86,16 @@ def test_plan_sync_rejects_invalid_inputs(
             ".",
             {"guide.txt"},
         ),
+        (
+            ("plan_sync", "source_multi"),
+            ("plan_sync", "destination_single"),
+            ("sub/**",),
+            (),
+            (),
+            (),
+            "sub",
+            {"chapter.txt"},
+        ),
     ],
 )
 def test_plan_sync_applies_include_exclude(
@@ -105,7 +115,9 @@ def test_plan_sync_applies_include_exclude(
     destination_root = fixture_path(*dest)
 
     plan = plan_sync(
-        SyncScope(source_root=source_root, destination_root=destination_root, path=sync_path),
+        SyncScope(
+            source_root=source_root, destination_root=destination_root, path=sync_path
+        ),
         SyncFilters(
             source_include=source_include,
             source_exclude=source_exclude,
@@ -165,7 +177,9 @@ def test_plan_sync_file_source(
     destination_root = fixture_path(*dest)
 
     plan = plan_sync(
-        SyncScope(source_root=source_root, destination_root=destination_root, path=filename),
+        SyncScope(
+            source_root=source_root, destination_root=destination_root, path=filename
+        ),
         SyncFilters(
             source_include=(),
             source_exclude=source_exclude,
@@ -234,7 +248,9 @@ def test_plan_sync_destination_filtering(
     source_root = fixture_path(*source)
     destination_root = fixture_path(*dest)
     plan = plan_sync(
-        SyncScope(source_root=source_root, destination_root=destination_root, path=sync_path),
+        SyncScope(
+            source_root=source_root, destination_root=destination_root, path=sync_path
+        ),
         SyncFilters(
             source_include=(),
             source_exclude=(),
@@ -278,7 +294,9 @@ def test_plan_sync_with_delete_removes_unmanaged_files(
 
     policy = plan_policy()
     plan = plan_sync(
-        SyncScope(source_root=source_root, destination_root=destination_root, path=sync_path),
+        SyncScope(
+            source_root=source_root, destination_root=destination_root, path=sync_path
+        ),
         SyncFilters(
             source_include=(),
             source_exclude=(),
@@ -322,7 +340,9 @@ def test_plan_sync_without_delete_keeps_extra_files(
     destination_root = fixture_path(*dest)
 
     plan = plan_sync(
-        SyncScope(source_root=source_root, destination_root=destination_root, path=sync_path),
+        SyncScope(
+            source_root=source_root, destination_root=destination_root, path=sync_path
+        ),
         SyncFilters(
             source_include=(),
             source_exclude=(),
@@ -379,7 +399,9 @@ def test_plan_sync_with_delete_respects_selector_intersection(
 
     policy = plan_policy()
     plan = plan_sync(
-        SyncScope(source_root=source_root, destination_root=destination_root, path=sync_path),
+        SyncScope(
+            source_root=source_root, destination_root=destination_root, path=sync_path
+        ),
         SyncFilters(
             source_include=source_include,
             source_exclude=(),
@@ -430,7 +452,9 @@ def test_plan_sync_file_source_copies_when_destination_missing(
     monkeypatch.setattr(Path, "exists", exists_mock)
 
     plan = plan_sync(
-        SyncScope(source_root=source_root, destination_root=destination_root, path=filename),
+        SyncScope(
+            source_root=source_root, destination_root=destination_root, path=filename
+        ),
         SyncFilters(
             source_include=(),
             source_exclude=(),

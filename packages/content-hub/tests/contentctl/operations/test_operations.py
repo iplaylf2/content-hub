@@ -281,6 +281,7 @@ def test_run_deploy_applies_plan(
             source_root=Path(resolved_source_root),
             destination_root=Path(resolved_destination_root),
         )
+
     plan_sync_mock = create_autospec(
         deploy_mod.plan_sync,
         side_effect=plan_sync_side_effect,

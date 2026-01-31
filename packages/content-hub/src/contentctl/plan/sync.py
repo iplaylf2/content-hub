@@ -236,10 +236,12 @@ async def _plan_sync_directories(
                 )
             )
 
+    initial_dest_root = destination_root if destination_root.exists() else None
+
     async for operation in stream_concurrently(
         process_directory_pair(
             source_root,
-            destination_root,
+            initial_dest_root,
             Path("."),
             source_pruned=False,
             dest_pruned=False,
