@@ -1,6 +1,5 @@
-from .sync import execute_sync_operation, resolve_sync_roots
+from .sync import execute_sync_operation
 
 __all__ = [
     "execute_sync_operation",
-    "resolve_sync_roots",
 ]

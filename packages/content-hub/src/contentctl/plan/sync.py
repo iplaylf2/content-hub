@@ -16,52 +16,58 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Iterator
 
 
-async def plan_sync(
-    source_path: Path,
-    destination_path: Path,
-    source_include: tuple[str, ...],
-    source_exclude: tuple[str, ...],
-    destination_include: tuple[str, ...],
-    destination_exclude: tuple[str, ...],
-    semaphore: asyncio.Semaphore,
+def plan_sync(
+    scope: SyncScope,
+    filters: SyncFilters,
     *,
-    allow_delete: bool = False,
-) -> AsyncIterator[SyncOperation]:
-    if source_path.is_file():
-        operation = _plan_sync_single_file(
+    policy: SyncPolicy,
+) -> SyncPlan:
+    _validate_subpath(scope.path)
+    source_path = scope.source_root / scope.path
+    destination_path = scope.destination_root / scope.path
+    _validate_sync_paths(source_path, destination_path)
+
+    source_is_file = source_path.is_file()
+    source_plan_root = source_path.parent if source_is_file else source_path
+    destination_plan_root = (
+        destination_path.parent if source_is_file else destination_path
+    )
+
+    source_base = source_path.relative_to(scope.source_root)
+    destination_base = destination_path.relative_to(scope.destination_root)
+    if source_is_file:
+        source_base = source_base.parent
+        destination_base = destination_base.parent
+    base = SyncBase(source=source_base, destination=destination_base)
+
+    async def stream() -> AsyncIterator[SyncOperation]:
+        if source_is_file:
+            operation = _plan_sync_single_file(
+                source_path,
+                destination_path,
+                filters=filters,
+                base=base,
+            )
+            if operation:
+                yield operation
+            return
+
+        async for operation in _plan_sync_directories(
             source_path,
             destination_path,
-            source_include,
-            source_exclude,
-            destination_include,
-            destination_exclude,
-        )
-        if operation:
+            filters=filters,
+            base=base,
+            policy=policy,
+        ):
             yield operation
-        return
 
-    async for operation in _plan_sync_directories(
-        source_path,
-        destination_path,
-        source_include,
-        source_exclude,
-        destination_include,
-        destination_exclude,
-        semaphore,
-        allow_delete=allow_delete,
-    ):
-        yield operation
-
-
-def resolve_sync_paths(
-    source_root: Path,
-    destination_root: Path,
-    path: str,
-) -> tuple[Path, Path]:
-    source_path = _resolve_subpath(source_root, path)
-    destination_path = _resolve_subpath(destination_root, path)
-    _validate_sync_paths(source_path, destination_path)
-    return source_path, destination_path
+    return SyncPlan(
+        stream=stream(),
+        source_path=source_path,
+        destination_path=destination_path,
+        source_root=source_plan_root,
+        destination_root=destination_plan_root,
+    )
 
 
 class SyncError(RuntimeError):
@@ -72,6 +78,42 @@ class SyncError(RuntimeError):
 class SyncOperation:
     relative: Path
     action: SyncAction
+
+
+@dataclass(frozen=True)
+class SyncScope:
+    source_root: Path
+    destination_root: Path
+    path: str
+
+
+@dataclass(frozen=True)
+class SyncFilters:
+    source_include: tuple[str, ...]
+    source_exclude: tuple[str, ...]
+    destination_include: tuple[str, ...]
+    destination_exclude: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class SyncBase:
+    source: Path
+    destination: Path
+
+
+@dataclass(frozen=True)
+class SyncPolicy:
+    semaphore: asyncio.Semaphore
+    allow_delete: bool = False
+
+
+@dataclass(frozen=True)
+class SyncPlan:
+    stream: AsyncIterator[SyncOperation]
+    source_path: Path
+    destination_path: Path
+    source_root: Path
+    destination_root: Path
 
 
 class SyncAction(str, Enum):
@@ -87,20 +129,32 @@ class _DirectoryEntries:
     subdirs: set[Path]
 
 
+def _validate_subpath(subpath: str) -> None:
+    candidate = Path(subpath)
+    if ".." in candidate.parts:
+        raise SyncError(f"path escapes base directory: {subpath}")
+
+
 def _plan_sync_single_file(
     source_path: Path,
     destination_path: Path,
-    source_include: tuple[str, ...],
-    source_exclude: tuple[str, ...],
-    destination_include: tuple[str, ...],
-    destination_exclude: tuple[str, ...],
+    *,
+    filters: SyncFilters,
+    base: SyncBase,
 ) -> SyncOperation | None:
     rel_path = Path(source_path.name)
 
-    if not _is_managed(rel_path, source_include, source_exclude):
+    if not _is_managed_with_base(
+        rel_path, base.source, filters.source_include, filters.source_exclude
+    ):
         return None
 
-    if not _is_managed(rel_path, destination_include, destination_exclude):
+    if not _is_managed_with_base(
+        rel_path,
+        base.destination,
+        filters.destination_include,
+        filters.destination_exclude,
+    ):
         return SyncOperation(relative=rel_path, action=SyncAction.SKIP)
 
     action = SyncAction.REPLACE if destination_path.exists() else SyncAction.COPY
@@ -110,16 +164,13 @@ def _plan_sync_single_file(
 async def _plan_sync_directories(
     source_root: Path,
     destination_root: Path,
-    source_include: tuple[str, ...],
-    source_exclude: tuple[str, ...],
-    destination_include: tuple[str, ...],
-    destination_exclude: tuple[str, ...],
-    semaphore: asyncio.Semaphore,
     *,
-    allow_delete: bool,
+    filters: SyncFilters,
+    base: SyncBase,
+    policy: SyncPolicy,
 ) -> AsyncIterator[SyncOperation]:
-    source_prune_exclude = _prune_exclude_patterns(source_exclude)
-    destination_prune_exclude = _prune_exclude_patterns(destination_exclude)
+    source_prune_exclude = _prune_exclude_patterns(filters.source_exclude)
+    destination_prune_exclude = _prune_exclude_patterns(filters.destination_exclude)
 
     async def process_directory_pair(
         source_dir: Path | None,
@@ -130,12 +181,12 @@ async def _plan_sync_directories(
         dest_pruned: bool,
     ) -> AsyncIterator[Emit[SyncOperation] | Spawn[SyncOperation]]:
         if source_dir is not None and not source_pruned:
-            source_entries = await _scan_directory_single(source_dir, semaphore)
+            source_entries = await _scan_directory_single(source_dir, policy.semaphore)
         else:
             source_entries = _DirectoryEntries(files=set(), subdirs=set())
 
-        if dest_dir is not None and not (allow_delete and dest_pruned):
-            dest_entries = await _scan_directory_single(dest_dir, semaphore)
+        if dest_dir is not None and not (policy.allow_delete and dest_pruned):
+            dest_entries = await _scan_directory_single(dest_dir, policy.semaphore)
         else:
             dest_entries = _DirectoryEntries(files=set(), subdirs=set())
 
@@ -143,20 +194,19 @@ async def _plan_sync_directories(
             rel_dir,
             source_entries.files,
             dest_entries.files,
-            source_include,
-            source_exclude,
-            destination_include,
-            destination_exclude,
+            filters=filters,
+            base=base,
         ):
             yield Emit(operation)
 
-        if allow_delete:
+        if policy.allow_delete:
             for operation in _plan_file_cleanup(
                 rel_dir,
                 source_entries.files,
                 dest_entries.files,
-                source_include,
-                source_exclude,
+                filters.source_include,
+                filters.source_exclude,
+                base,
             ):
                 yield Emit(operation)
 
@@ -173,12 +223,14 @@ async def _plan_sync_directories(
             )
             dest_subdir = (dest_dir / subdir_name) if (dest_dir and in_dest) else None
 
-            sub_source_pruned = _should_prune_dir(subdir_rel_path, source_prune_exclude)
+            sub_source_pruned = _should_prune_dir(
+                subdir_rel_path, source_prune_exclude, base.source
+            )
             sub_dest_pruned = _should_prune_dir(
-                subdir_rel_path, destination_prune_exclude
+                subdir_rel_path, destination_prune_exclude, base.destination
             )
 
-            if sub_source_pruned and (not allow_delete or sub_dest_pruned):
+            if sub_source_pruned and (not policy.allow_delete or sub_dest_pruned):
                 continue
 
             yield Spawn(
@@ -191,10 +243,12 @@ async def _plan_sync_directories(
                 )
             )
 
+    initial_dest_root = destination_root if destination_root.exists() else None
+
     async for operation in stream_concurrently(
         process_directory_pair(
             source_root,
-            destination_root,
+            initial_dest_root,
             Path("."),
             source_pruned=False,
             dest_pruned=False,
@@ -222,18 +276,24 @@ def _plan_file_propagation(
     rel_dir: Path,
     source_files: set[Path],
     dest_files: set[Path],
-    source_include: tuple[str, ...],
-    source_exclude: tuple[str, ...],
-    destination_include: tuple[str, ...],
-    destination_exclude: tuple[str, ...],
+    *,
+    filters: SyncFilters,
+    base: SyncBase,
 ) -> Iterator[SyncOperation]:
     for file_name in source_files:
         file_rel_path = rel_dir / file_name
 
-        if not _is_managed(file_rel_path, source_include, source_exclude):
+        if not _is_managed_with_base(
+            file_rel_path, base.source, filters.source_include, filters.source_exclude
+        ):
             continue
 
-        if not _is_managed(file_rel_path, destination_include, destination_exclude):
+        if not _is_managed_with_base(
+            file_rel_path,
+            base.destination,
+            filters.destination_include,
+            filters.destination_exclude,
+        ):
             yield SyncOperation(relative=file_rel_path, action=SyncAction.SKIP)
             continue
 
@@ -247,11 +307,14 @@ def _plan_file_cleanup(
     dest_files: set[Path],
     source_include: tuple[str, ...],
     source_exclude: tuple[str, ...],
+    base: SyncBase,
 ) -> Iterator[SyncOperation]:
     for file_name in dest_files - source_files:
         file_rel_path = rel_dir / file_name
 
-        if _is_managed(file_rel_path, source_include, source_exclude):
+        if _is_managed_with_base(
+            file_rel_path, base.source, source_include, source_exclude
+        ):
             yield SyncOperation(relative=file_rel_path, action=SyncAction.DELETE)
 
 
@@ -265,17 +328,6 @@ def _list_directory_entries(path: Path) -> tuple[list[Path], list[Path]]:
             else:
                 files.append(Path(entry.path))
     return subdirs, files
-
-
-def _resolve_subpath(base: Path, subpath: str) -> Path:
-    candidate = Path(subpath)
-    if candidate.is_absolute():
-        raise SyncError(f"path must be relative: {subpath}")
-    resolved = (base / candidate).resolve()
-    base_resolved = base.resolve()
-    if resolved != base_resolved and base_resolved not in resolved.parents:
-        raise SyncError(f"path escapes base directory: {subpath}")
-    return resolved
 
 
 def _validate_sync_paths(source_path: Path, destination_path: Path) -> None:
@@ -324,10 +376,21 @@ def _prune_exclude_patterns(exclude: tuple[str, ...]) -> tuple[str, ...]:
 def _should_prune_dir(
     rel_dir: Path,
     prune_exclude: tuple[str, ...],
+    base: Path,
 ) -> bool:
     if not prune_exclude:
         return False
-    return any(_matches_pattern(rel_dir, pattern) for pattern in prune_exclude)
+    match_path = base / rel_dir
+    return any(_matches_pattern(match_path, pattern) for pattern in prune_exclude)
+
+
+def _is_managed_with_base(
+    rel_path: Path,
+    base: Path,
+    include: tuple[str, ...],
+    exclude: tuple[str, ...],
+) -> bool:
+    return _is_managed(base / rel_path, include, exclude)
 
 
 def _matches_pattern(rel_path: Path, pattern: str) -> bool:

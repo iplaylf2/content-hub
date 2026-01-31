@@ -27,6 +27,7 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
 
     match args.command:
         case "deploy":
+            _validate_relative_path(parser, args.path)
             workspaces = list(args.workspace or [])
             all_workspaces = bool(args.all_workspaces)
             _validate_deploy_workspaces(
@@ -45,6 +46,7 @@ def parse_cli(argv: list[str], cwd: Path) -> CliContext:
                 verbose=args.verbose,
             )
         case "adopt":
+            _validate_relative_path(parser, args.path)
             workspace = args.workspace
             _validate_adopt_workspace(parser, workspace)
             return AdoptContext(
@@ -140,6 +142,14 @@ def _resolve_config_path(cwd: Path, config_arg: str) -> Path:
     if not config_path.is_absolute():
         config_path = cwd / config_path
     return config_path.resolve()
+
+
+def _validate_relative_path(
+    parser: argparse.ArgumentParser,
+    path: str,
+) -> None:
+    if Path(path).is_absolute():
+        parser.error("path must be relative.")
 
 
 def _validate_deploy_workspaces(

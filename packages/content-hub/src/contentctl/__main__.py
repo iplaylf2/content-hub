@@ -30,6 +30,9 @@ def main() -> None:
         except (ConfigError, FileExistsError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             sys.exit(1)
+        except PermissionError as exc:
+            _print_permission_error(exc)
+            sys.exit(1)
         return
 
     try:
@@ -43,6 +46,9 @@ def main() -> None:
         asyncio.run(_dispatch(ctx, resolved))
     except (ConfigError, SyncError) as exc:
         print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    except PermissionError as exc:
+        _print_permission_error(exc)
         sys.exit(1)
 
 
@@ -75,6 +81,13 @@ async def _dispatch(
                 verbose=ctx.verbose,
                 output=sys.stdout,
             )
+
+
+def _print_permission_error(exc: PermissionError) -> None:
+    if exc.filename:
+        print(f"error: permission denied: {exc.filename}", file=sys.stderr)
+    else:
+        print("error: permission denied", file=sys.stderr)
 
 
 if __name__ == "__main__":

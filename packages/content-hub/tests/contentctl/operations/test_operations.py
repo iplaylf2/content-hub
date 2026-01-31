@@ -9,6 +9,7 @@ from contentctl.operations import adopt as adopt_mod
 from contentctl.operations import deploy as deploy_mod
 from contentctl.operations.adopt import run_adopt
 from contentctl.operations.deploy import run_deploy
+from contentctl.plan import SyncPlan
 from contentctl.plan.sync import SyncAction, SyncOperation
 
 if TYPE_CHECKING:
@@ -113,28 +114,27 @@ def test_run_adopt_applies_plan(
     def plan_sync_side_effect(
         *_args: object,
         **_kwargs: object,
-    ) -> AsyncIterator[SyncOperation]:
+    ) -> SyncPlan:
         async def iter_ops() -> AsyncIterator[SyncOperation]:
             yield SyncOperation(
                 relative=Path(planned_filename),
                 action=SyncAction.COPY,
             )
 
-        return iter_ops()
+        source_path = fixture_path(*source)
+        destination_path = fixture_path(*dest)
+        return SyncPlan(
+            stream=iter_ops(),
+            source_path=source_path,
+            destination_path=destination_path,
+            source_root=source_path,
+            destination_root=destination_path,
+        )
 
     plan_sync_mock = create_autospec(
         adopt_mod.plan_sync,
         side_effect=plan_sync_side_effect,
     )
-    resolve_sync_paths_mock = create_autospec(
-        adopt_mod.resolve_sync_paths,
-        return_value=(
-            fixture_path(*source),
-            fixture_path(*dest),
-        ),
-    )
-
-    monkeypatch.setattr(adopt_mod, "resolve_sync_paths", resolve_sync_paths_mock)
     monkeypatch.setattr(adopt_mod, "plan_sync", plan_sync_mock)
     monkeypatch.setattr(adopt_mod, "execute_sync_operation", execute_mock)
 
@@ -264,8 +264,9 @@ def test_run_deploy_applies_plan(
     def plan_sync_side_effect(
         *_args: object,
         **kwargs: object,
-    ) -> AsyncIterator[SyncOperation]:
-        allow_delete_calls.append(bool(kwargs.get("allow_delete")))
+    ) -> SyncPlan:
+        policy = kwargs.get("policy")
+        allow_delete_calls.append(bool(getattr(policy, "allow_delete", False)))
 
         async def iter_ops() -> AsyncIterator[SyncOperation]:
             yield SyncOperation(
@@ -273,19 +274,14 @@ def test_run_deploy_applies_plan(
                 action=SyncAction.COPY,
             )
 
-        return iter_ops()
+        return SyncPlan(
+            stream=iter_ops(),
+            source_path=fixture_path(*source_fixture),
+            destination_path=fixture_path(*destination_fixture),
+            source_root=Path(resolved_source_root),
+            destination_root=Path(resolved_destination_root),
+        )
 
-    resolve_sync_paths_mock = create_autospec(
-        deploy_mod.resolve_sync_paths,
-        return_value=(
-            fixture_path(*source_fixture),
-            fixture_path(*destination_fixture),
-        ),
-    )
-    resolve_sync_roots_mock = create_autospec(
-        deploy_mod.resolve_sync_roots,
-        return_value=(Path(resolved_source_root), Path(resolved_destination_root)),
-    )
     plan_sync_mock = create_autospec(
         deploy_mod.plan_sync,
         side_effect=plan_sync_side_effect,
@@ -295,8 +291,6 @@ def test_run_deploy_applies_plan(
         side_effect=observe_execute,
     )
 
-    monkeypatch.setattr(deploy_mod, "resolve_sync_paths", resolve_sync_paths_mock)
-    monkeypatch.setattr(deploy_mod, "resolve_sync_roots", resolve_sync_roots_mock)
     monkeypatch.setattr(deploy_mod, "plan_sync", plan_sync_mock)
     monkeypatch.setattr(deploy_mod, "execute_sync_operation", execute_mock)
 

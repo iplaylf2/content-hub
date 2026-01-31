@@ -12,13 +12,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def resolve_sync_roots(source_path: Path, destination_path: Path) -> tuple[Path, Path]:
-    source_is_file = source_path.is_file()
-    source_root = source_path.parent if source_is_file else source_path
-    destination_root = destination_path.parent if source_is_file else destination_path
-    return source_root, destination_root
-
-
 async def execute_sync_operation(
     stream: AsyncIterable[SyncOperation],
     source_root: Path,
