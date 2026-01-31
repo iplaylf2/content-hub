@@ -2,6 +2,5 @@
     "editor.formatOnSave": true,
     "files.associations": {
         "LICENSE": "plaintext"
-    },
-    "python.analysis.typeCheckingMode": "strict",
+    }
 }

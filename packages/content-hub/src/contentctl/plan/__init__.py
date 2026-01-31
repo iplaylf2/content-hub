@@ -1,15 +1,21 @@
 from .sync import (
     SyncAction,
     SyncError,
+    SyncFilters,
     SyncOperation,
+    SyncPlan,
+    SyncPolicy,
+    SyncScope,
     plan_sync,
-    resolve_sync_paths,
 )
 
 __all__ = [
     "SyncAction",
     "SyncError",
+    "SyncFilters",
     "SyncOperation",
+    "SyncPlan",
+    "SyncPolicy",
+    "SyncScope",
     "plan_sync",
-    "resolve_sync_paths",
 ]

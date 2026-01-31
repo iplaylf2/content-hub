@@ -3,8 +3,8 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, TextIO
 
-from contentctl.operation_kit import execute_sync_operation, resolve_sync_roots
-from contentctl.plan.sync import plan_sync, resolve_sync_paths
+from contentctl.operation_kit import execute_sync_operation
+from contentctl.plan.sync import SyncFilters, SyncPolicy, SyncScope, plan_sync
 from contentctl.utils.concurrent import default_concurrency
 
 if TYPE_CHECKING:
@@ -23,34 +23,27 @@ async def run_adopt(
     base = default_concurrency()
     io_semaphore = asyncio.Semaphore(base)
 
-    source_path, destination_path = resolve_sync_paths(
-        source_root=workspace.path,
-        destination_root=origin.path,
-        path=path,
+    plan = plan_sync(
+        SyncScope(workspace.path, origin.path, path),
+        SyncFilters(
+            source_include=workspace.include,
+            source_exclude=workspace.exclude,
+            destination_include=origin.include,
+            destination_exclude=origin.exclude,
+        ),
+        policy=SyncPolicy(semaphore=io_semaphore),
     )
-
-    stream = plan_sync(
-        source_path=source_path,
-        destination_path=destination_path,
-        source_include=workspace.include,
-        source_exclude=workspace.exclude,
-        destination_include=origin.include,
-        destination_exclude=origin.exclude,
-        semaphore=io_semaphore,
-    )
-
-    source_root, destination_root = resolve_sync_roots(source_path, destination_path)
 
     if verbose or dry_run:
         print(
-            f"adopt {workspace.name}: {source_path} -> {destination_path}",
+            f"adopt {workspace.name}: {plan.source_path} -> {plan.destination_path}",
             file=output,
         )
 
     await execute_sync_operation(
-        stream=stream,
-        source_root=source_root,
-        destination_root=destination_root,
+        stream=plan.stream,
+        source_root=plan.source_root,
+        destination_root=plan.destination_root,
         semaphore=io_semaphore,
         operation_name="adopt",
         workspace_name=workspace.name,
