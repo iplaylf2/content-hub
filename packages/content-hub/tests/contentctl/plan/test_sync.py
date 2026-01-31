@@ -1,17 +1,24 @@
 import asyncio
 from collections.abc import AsyncIterator, Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from unittest.mock import create_autospec
 
 import pytest
-from contentctl.plan import SyncAction, SyncError, plan_sync, resolve_sync_paths
+from contentctl.plan import (
+    SyncAction,
+    SyncError,
+    SyncFilters,
+    SyncPolicy,
+    SyncScope,
+    plan_sync,
+)
 from contentctl.plan.sync import SyncOperation
 
 if TYPE_CHECKING:
     from tests.fixture_types import FixturePath
 
-type PlanSemaphores = Callable[[], dict[str, Any]]
+type PlanPolicy = Callable[[], SyncPolicy]
 type CollectOperations = Callable[[AsyncIterator[SyncOperation]], list[SyncOperation]]
 
 
@@ -34,17 +41,26 @@ type CollectOperations = Callable[[AsyncIterator[SyncOperation]], list[SyncOpera
         (("plan_sync", "source_multi", "sub"), ("plan_sync", "source_multi"), "."),
     ],
 )
-def test_resolve_sync_paths_rejects_invalid_inputs(
+def test_plan_sync_rejects_invalid_inputs(
     fixture_path: FixturePath,
     source: tuple[str, ...],
     dest: tuple[str, ...],
     path: str,
 ) -> None:
     with pytest.raises(SyncError):
-        resolve_sync_paths(
-            source_root=fixture_path(*source),
-            destination_root=fixture_path(*dest),
-            path=path,
+        plan_sync(
+            SyncScope(
+                source_root=fixture_path(*source),
+                destination_root=fixture_path(*dest),
+                path=path,
+            ),
+            SyncFilters(
+                source_include=(),
+                source_exclude=(),
+                destination_include=(),
+                destination_exclude=(),
+            ),
+            policy=SyncPolicy(semaphore=asyncio.Semaphore(1)),
         )
 
 
@@ -74,7 +90,7 @@ def test_resolve_sync_paths_rejects_invalid_inputs(
 )
 def test_plan_sync_applies_include_exclude(
     fixture_path: FixturePath,
-    plan_semaphores: PlanSemaphores,
+    plan_policy: PlanPolicy,
     collect_operations: CollectOperations,
     source: tuple[str, ...],
     dest: tuple[str, ...],
@@ -88,22 +104,18 @@ def test_plan_sync_applies_include_exclude(
     source_root = fixture_path(*source)
     destination_root = fixture_path(*dest)
 
-    source_path, destination_path = resolve_sync_paths(
-        source_root=source_root,
-        destination_root=destination_root,
-        path=sync_path,
-    )
-    operations = plan_sync(
-        source_path=source_path,
-        destination_path=destination_path,
-        source_include=source_include,
-        source_exclude=source_exclude,
-        destination_include=destination_include,
-        destination_exclude=destination_exclude,
-        **plan_semaphores(),
+    plan = plan_sync(
+        SyncScope(source_root=source_root, destination_root=destination_root, path=sync_path),
+        SyncFilters(
+            source_include=source_include,
+            source_exclude=source_exclude,
+            destination_include=destination_include,
+            destination_exclude=destination_exclude,
+        ),
+        policy=plan_policy(),
     )
 
-    collected = collect_operations(operations)
+    collected = collect_operations(plan.stream)
     paths = {op.relative.name for op in collected}
 
     assert paths == expected_files
@@ -139,7 +151,7 @@ def test_plan_sync_applies_include_exclude(
 )
 def test_plan_sync_file_source(
     fixture_path: FixturePath,
-    plan_semaphores: PlanSemaphores,
+    plan_policy: PlanPolicy,
     collect_operations: CollectOperations,
     make_sync_op: Callable[[str, SyncAction], SyncOperation],
     source: tuple[str, ...],
@@ -152,22 +164,18 @@ def test_plan_sync_file_source(
     source_root = fixture_path(*source)
     destination_root = fixture_path(*dest)
 
-    source_path, destination_path = resolve_sync_paths(
-        source_root=source_root,
-        destination_root=destination_root,
-        path=filename,
-    )
-    operations = plan_sync(
-        source_path=source_path,
-        destination_path=destination_path,
-        source_include=(),
-        source_exclude=source_exclude,
-        destination_include=(),
-        destination_exclude=(),
-        **plan_semaphores(),
+    plan = plan_sync(
+        SyncScope(source_root=source_root, destination_root=destination_root, path=filename),
+        SyncFilters(
+            source_include=(),
+            source_exclude=source_exclude,
+            destination_include=(),
+            destination_exclude=(),
+        ),
+        policy=plan_policy(),
     )
 
-    collected = collect_operations(operations)
+    collected = collect_operations(plan.stream)
     if expected_count > 0:
         assert expected_action is not None
         expected = [make_sync_op(filename, expected_action)]
@@ -214,7 +222,7 @@ def test_plan_sync_file_source(
 )
 def test_plan_sync_destination_filtering(
     fixture_path: FixturePath,
-    plan_semaphores: PlanSemaphores,
+    plan_policy: PlanPolicy,
     collect_operations: CollectOperations,
     source: tuple[str, ...],
     dest: tuple[str, ...],
@@ -225,22 +233,18 @@ def test_plan_sync_destination_filtering(
 ) -> None:
     source_root = fixture_path(*source)
     destination_root = fixture_path(*dest)
-    source_path, destination_path = resolve_sync_paths(
-        source_root=source_root,
-        destination_root=destination_root,
-        path=sync_path,
-    )
-    operations = plan_sync(
-        source_path=source_path,
-        destination_path=destination_path,
-        source_include=(),
-        source_exclude=(),
-        destination_include=destination_include,
-        destination_exclude=destination_exclude,
-        **plan_semaphores(),
+    plan = plan_sync(
+        SyncScope(source_root=source_root, destination_root=destination_root, path=sync_path),
+        SyncFilters(
+            source_include=(),
+            source_exclude=(),
+            destination_include=destination_include,
+            destination_exclude=destination_exclude,
+        ),
+        policy=plan_policy(),
     )
 
-    actions = {str(op.relative): op.action for op in collect_operations(operations)}
+    actions = {str(op.relative): op.action for op in collect_operations(plan.stream)}
 
     expected = dict(expected_actions)
     assert {k: v for k, v in actions.items() if k in expected} == expected
@@ -262,7 +266,7 @@ def test_plan_sync_destination_filtering(
 )
 def test_plan_sync_with_delete_removes_unmanaged_files(
     fixture_path: FixturePath,
-    plan_semaphores: PlanSemaphores,
+    plan_policy: PlanPolicy,
     collect_operations: CollectOperations,
     source: tuple[str, ...],
     dest: tuple[str, ...],
@@ -272,23 +276,19 @@ def test_plan_sync_with_delete_removes_unmanaged_files(
     source_root = fixture_path(*source)
     destination_root = fixture_path(*dest)
 
-    source_path, destination_path = resolve_sync_paths(
-        source_root=source_root,
-        destination_root=destination_root,
-        path=sync_path,
-    )
-    operations = plan_sync(
-        source_path=source_path,
-        destination_path=destination_path,
-        source_include=(),
-        source_exclude=(),
-        destination_include=(),
-        destination_exclude=(),
-        allow_delete=True,
-        **plan_semaphores(),
+    policy = plan_policy()
+    plan = plan_sync(
+        SyncScope(source_root=source_root, destination_root=destination_root, path=sync_path),
+        SyncFilters(
+            source_include=(),
+            source_exclude=(),
+            destination_include=(),
+            destination_exclude=(),
+        ),
+        policy=SyncPolicy(semaphore=policy.semaphore, allow_delete=True),
     )
 
-    collected = collect_operations(operations)
+    collected = collect_operations(plan.stream)
     actions = {str(op.relative): op.action for op in collected}
 
     assert all(actions.get(file) is action for file, action in expected_actions.items())
@@ -309,7 +309,7 @@ def test_plan_sync_with_delete_removes_unmanaged_files(
 )
 def test_plan_sync_without_delete_keeps_extra_files(
     fixture_path: FixturePath,
-    plan_semaphores: PlanSemaphores,
+    plan_policy: PlanPolicy,
     collect_operations: CollectOperations,
     source: tuple[str, ...],
     dest: tuple[str, ...],
@@ -321,23 +321,18 @@ def test_plan_sync_without_delete_keeps_extra_files(
     source_root = fixture_path(*source)
     destination_root = fixture_path(*dest)
 
-    source_path, destination_path = resolve_sync_paths(
-        source_root=source_root,
-        destination_root=destination_root,
-        path=sync_path,
-    )
-    operations = plan_sync(
-        source_path=source_path,
-        destination_path=destination_path,
-        source_include=(),
-        source_exclude=(),
-        destination_include=(),
-        destination_exclude=(),
-        allow_delete=False,
-        **plan_semaphores(),
+    plan = plan_sync(
+        SyncScope(source_root=source_root, destination_root=destination_root, path=sync_path),
+        SyncFilters(
+            source_include=(),
+            source_exclude=(),
+            destination_include=(),
+            destination_exclude=(),
+        ),
+        policy=plan_policy(),
     )
 
-    collected = collect_operations(operations)
+    collected = collect_operations(plan.stream)
     actions = {str(op.relative): op.action for op in collected}
 
     assert missing_file not in actions
@@ -370,7 +365,7 @@ def test_plan_sync_without_delete_keeps_extra_files(
 )
 def test_plan_sync_with_delete_respects_selector_intersection(
     fixture_path: FixturePath,
-    plan_semaphores: PlanSemaphores,
+    plan_policy: PlanPolicy,
     collect_operations: CollectOperations,
     source: tuple[str, ...],
     dest: tuple[str, ...],
@@ -382,23 +377,19 @@ def test_plan_sync_with_delete_respects_selector_intersection(
     source_root = fixture_path(*source)
     destination_root = fixture_path(*dest)
 
-    source_path, destination_path = resolve_sync_paths(
-        source_root=source_root,
-        destination_root=destination_root,
-        path=sync_path,
-    )
-    operations = plan_sync(
-        source_path=source_path,
-        destination_path=destination_path,
-        source_include=source_include,
-        source_exclude=(),
-        destination_include=destination_include,
-        destination_exclude=(),
-        allow_delete=True,
-        **plan_semaphores(),
+    policy = plan_policy()
+    plan = plan_sync(
+        SyncScope(source_root=source_root, destination_root=destination_root, path=sync_path),
+        SyncFilters(
+            source_include=source_include,
+            source_exclude=(),
+            destination_include=destination_include,
+            destination_exclude=(),
+        ),
+        policy=SyncPolicy(semaphore=policy.semaphore, allow_delete=True),
     )
 
-    collected = collect_operations(operations)
+    collected = collect_operations(plan.stream)
     actions = {str(op.relative): op.action for op in collected}
 
     assert all(
@@ -419,7 +410,7 @@ def test_plan_sync_with_delete_respects_selector_intersection(
 )
 def test_plan_sync_file_source_copies_when_destination_missing(
     fixture_path: FixturePath,
-    plan_semaphores: PlanSemaphores,
+    plan_policy: PlanPolicy,
     collect_operations: CollectOperations,
     make_sync_op: Callable[[str, SyncAction], SyncOperation],
     monkeypatch: pytest.MonkeyPatch,
@@ -430,11 +421,7 @@ def test_plan_sync_file_source_copies_when_destination_missing(
     source_root = fixture_path(*source)
     destination_root = fixture_path(*dest)
 
-    source_path, destination_path = resolve_sync_paths(
-        source_root=source_root,
-        destination_root=destination_root,
-        path=filename,
-    )
+    destination_path = destination_root / filename
 
     def exists_stub(self: Path) -> bool:
         return self != destination_path
@@ -442,26 +429,27 @@ def test_plan_sync_file_source_copies_when_destination_missing(
     exists_mock = create_autospec(Path.exists, side_effect=exists_stub)
     monkeypatch.setattr(Path, "exists", exists_mock)
 
-    operations = plan_sync(
-        source_path=source_path,
-        destination_path=destination_path,
-        source_include=(),
-        source_exclude=(),
-        destination_include=(),
-        destination_exclude=(),
-        **plan_semaphores(),
+    plan = plan_sync(
+        SyncScope(source_root=source_root, destination_root=destination_root, path=filename),
+        SyncFilters(
+            source_include=(),
+            source_exclude=(),
+            destination_include=(),
+            destination_exclude=(),
+        ),
+        policy=plan_policy(),
     )
 
-    collected = collect_operations(operations)
+    collected = collect_operations(plan.stream)
     assert collected == [make_sync_op(filename, SyncAction.COPY)]
 
 
 @pytest.fixture
-def plan_semaphores() -> PlanSemaphores:
+def plan_policy() -> PlanPolicy:
     """Create semaphores for async plan operations."""
 
-    def _make() -> dict[str, asyncio.Semaphore]:
-        return {"semaphore": asyncio.Semaphore(2)}
+    def _make() -> SyncPolicy:
+        return SyncPolicy(semaphore=asyncio.Semaphore(2))
 
     return _make
 
