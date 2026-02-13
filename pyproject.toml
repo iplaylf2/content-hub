@@ -27,9 +27,9 @@ positional = true
 
 [dependency-groups]
 dev = [
-    "basedpyright>=1.37.1",
-    "poethepoet>=0.40.0",
+    "basedpyright>=1.38.0",
+    "poethepoet>=0.41.0",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
-    "ruff>=0.14.13",
+    "ruff>=0.15.1",
 ]

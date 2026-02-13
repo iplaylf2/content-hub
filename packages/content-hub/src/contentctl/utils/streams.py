@@ -1,14 +1,12 @@
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterable, Callable
 
-_StreamItem = TypeVar("_StreamItem")
 
-
-async def count_stream(
-    stream: AsyncIterable[_StreamItem],
-    predicate: Callable[[_StreamItem], bool] | None = None,
+async def count_stream[StreamItem](
+    stream: AsyncIterable[StreamItem],
+    predicate: Callable[[StreamItem], bool] | None = None,
 ) -> int:
     count = 0
     if predicate is None:
