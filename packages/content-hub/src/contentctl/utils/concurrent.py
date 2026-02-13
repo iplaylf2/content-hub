@@ -2,7 +2,7 @@ import asyncio
 import contextlib
 import os
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Callable
@@ -76,7 +76,7 @@ async def stream_concurrently[Result](
         except asyncio.CancelledError:
             raise
         except BaseException as exc:
-            await queue.put(_Error(exc))
+            await queue.put(_Error(_normalize_exception(exc)))
 
     task = asyncio.create_task(producer())
 
@@ -119,3 +119,15 @@ class _Done:
 @dataclass(slots=True)
 class _Error:
     exc: BaseException
+
+
+def _normalize_exception(exc: BaseException) -> BaseException:
+    if not isinstance(exc, ExceptionGroup):
+        return exc
+
+    group = cast("ExceptionGroup[Exception]", exc)
+    exceptions = group.exceptions
+    if len(exceptions) != 1:
+        return cast("BaseException", exc)
+
+    return _normalize_exception(exceptions[0])
