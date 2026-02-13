@@ -5,7 +5,7 @@ import glob
 import os
 import re
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -116,7 +116,7 @@ class SyncPlan:
     destination_root: Path
 
 
-class SyncAction(str, Enum):
+class SyncAction(StrEnum):
     COPY = "COPY"
     REPLACE = "REPLACE"
     SKIP = "SKIP"

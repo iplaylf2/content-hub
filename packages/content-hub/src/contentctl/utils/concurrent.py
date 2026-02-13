@@ -2,13 +2,10 @@ import asyncio
 import contextlib
 import os
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Callable
-
-_Item = TypeVar("_Item")
-_Result = TypeVar("_Result")
 
 _DEFAULT_BUFFER = 256
 _DEFAULT_CONCURRENCY = min(32, (os.cpu_count() or 1) + 4)
@@ -18,15 +15,15 @@ def default_concurrency() -> int:
     return _DEFAULT_CONCURRENCY
 
 
-async def map_concurrent(
-    source: AsyncIterable[_Item],
-    func: Callable[[_Item], Awaitable[_Result]],
+async def map_concurrent[Item, Result](
+    source: AsyncIterable[Item],
+    func: Callable[[Item], Awaitable[Result]],
     semaphore: asyncio.Semaphore,
-) -> AsyncIterator[_Result]:
-    async def worker(item: _Item) -> AsyncIterator[Emit[_Result] | Spawn[_Result]]:
+) -> AsyncIterator[Result]:
+    async def worker(item: Item) -> AsyncIterator[Emit[Result] | Spawn[Result]]:
         yield Emit(await func(item))
 
-    async def main() -> AsyncIterator[Emit[_Result] | Spawn[_Result]]:
+    async def main() -> AsyncIterator[Emit[Result] | Spawn[Result]]:
         async for item in source:
             yield Spawn(worker(item), semaphore)
 
@@ -34,14 +31,14 @@ async def map_concurrent(
         yield result
 
 
-async def stream_concurrently(
-    entry_point: AsyncIterator[Emit[_Result] | Spawn[_Result]],
+async def stream_concurrently[Result](
+    entry_point: AsyncIterator[Emit[Result] | Spawn[Result]],
     buffer: int = _DEFAULT_BUFFER,
-) -> AsyncIterator[_Result]:
-    queue: asyncio.Queue[_Result | _Done | _Error] = asyncio.Queue(maxsize=buffer)
+) -> AsyncIterator[Result]:
+    queue: asyncio.Queue[Result | _Done | _Error] = asyncio.Queue(maxsize=buffer)
 
     async def drive(
-        iterator: AsyncIterator[Emit[_Result] | Spawn[_Result]],
+        iterator: AsyncIterator[Emit[Result] | Spawn[Result]],
         tg: asyncio.TaskGroup,
     ) -> None:
         async for op in iterator:
@@ -56,7 +53,7 @@ async def stream_concurrently(
                     await semaphore.acquire()
 
                     async def drive_sem(
-                        iterator: AsyncIterator[Emit[_Result] | Spawn[_Result]],
+                        iterator: AsyncIterator[Emit[Result] | Spawn[Result]],
                         semaphore: asyncio.Semaphore,
                     ) -> None:
                         try:
