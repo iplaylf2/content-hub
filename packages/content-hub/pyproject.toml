@@ -20,7 +20,7 @@ contentctl = "contentctl.__main__:main"
 
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools>=80.0", "setuptools_scm[toml]>=8.0"]
+requires = ["setuptools>=82.0.1", "setuptools_scm[toml]>=10.0.5"]
 
 [tool.setuptools]
 package-dir = { "" = "src" }
