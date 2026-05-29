@@ -1,10 +1,5 @@
 {
-    "extraPaths": [
-        "packages/content-hub/src"
-    ],
-    "include": [
-        "packages/**/src",
-        "packages/**/tests"
-    ],
-    "typeCheckingMode": "strict"
+  "extraPaths": ["packages/content-hub/src"],
+  "include": ["packages/**/src", "packages/**/tests"],
+  "typeCheckingMode": "strict"
 }

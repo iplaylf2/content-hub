@@ -59,9 +59,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "path"
-          ],
+          "required": ["path"],
           "type": "object"
         }
       ]
@@ -99,9 +97,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "path"
-            ],
+            "required": ["path"],
             "type": "object"
           }
         ]
@@ -116,10 +112,7 @@
       "type": "object"
     }
   },
-  "required": [
-    "origin",
-    "workspaces"
-  ],
+  "required": ["origin", "workspaces"],
   "title": "content hub config",
   "type": "object"
 }

@@ -13,6 +13,24 @@ members = ["packages/*"]
 [tool.poe]
 executor = "uv"
 
+[tool.poe.tasks]
+spellcheck = "cspell lint ."
+
+[tool.poe.tasks.check]
+parallel = ["spellcheck", { cmd = "treefmt --ci ." }, { cmd = "oxfmt --check ." }, "ws:check"]
+
+[tool.poe.tasks.format]
+sequence = [{ cmd = "treefmt ." }, { cmd = "oxfmt --write ." }, "ws:format"]
+
+[tool.poe.tasks."ws:check"]
+parallel = ["ws content-hub check"]
+
+[tool.poe.tasks."ws:format"]
+parallel = ["ws content-hub format"]
+
+[tool.poe.tasks."ws:test"]
+parallel = ["ws content-hub test"]
+
 [tool.poe.tasks.ws]
 cmd = "poe ${task}"
 cwd = "packages/${workspace}"
@@ -27,9 +45,9 @@ positional = true
 
 [dependency-groups]
 dev = [
-    "basedpyright>=1.38.0",
-    "poethepoet>=0.41.0",
-    "pytest>=9.0.2",
-    "pytest-cov>=7.0.0",
-    "ruff>=0.15.1",
+  "basedpyright>=1.39.6",
+  "poethepoet>=0.46.0",
+  "pytest>=9.0.3",
+  "pytest-cov>=7.1.0",
+  "ruff>=0.15.14",
 ]
