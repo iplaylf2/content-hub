@@ -1,6 +1,7 @@
 addopts
 autospec
 basedpyright
+cachix
 coderabbitai
 conftest
 delenv
@@ -10,11 +11,15 @@ kwargs
 mapfile
 monkeypatch
 nixfmt
+nixos
+nixpkgs
 oxfmt
 pipefail
+pkgs
 poethepoet
 pycache
 pypa
+pypi
 pytest
 pyyaml
 setattr
