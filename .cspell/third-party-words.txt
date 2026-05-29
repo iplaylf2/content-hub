@@ -9,6 +9,8 @@ jsonschema
 kwargs
 mapfile
 monkeypatch
+nixfmt
+oxfmt
 pipefail
 poethepoet
 pycache
@@ -18,4 +20,5 @@ pyyaml
 setattr
 setuptools
 shellcheck
+treefmt
 venv

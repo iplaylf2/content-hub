@@ -65,7 +65,7 @@ Keep fixture scope appropriate to usage patterns. Use hierarchical organization 
 **Scope guidelines:**
 
 - File-level for single test files
-- Module-level for multiple files in same directory  
+- Module-level for multiple files in same directory
 - Global only for truly shared utilities
 
 **Best practices:**
